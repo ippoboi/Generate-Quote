@@ -1,0 +1,8 @@
+echo "venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.env
+*.pdf
+.DS_Store" > .gitignore
