@@ -120,3 +120,15 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Custom Sonner Toast Styles */
+[data-sonner-toast] [data-description] {
+  color: rgb(120, 120, 120) !important;
+  opacity: 1 !important;
+  font-weight: 500 !important;
+}
+
+/* Make warning toast description visible */
+[data-sonner-toast][data-type="warning"] [data-description] {
+  color: rgb(120, 120, 120) !important;
+}

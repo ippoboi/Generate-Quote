@@ -9,7 +9,14 @@ export interface InfosSociete {
   site: string;
   numero_devis: string;
   date: string;
-  pied_de_page: string;
+  forme_juridique: string;
+  capital: string;
+  siret: string;
+  rcs: string;
+  code_ape: string;
+  tva_intracom: string;
+  info_bancaire: string;
+  rib: string;
   logo?: string;
 }
 
@@ -36,10 +43,17 @@ export interface Conditions {
   tva_taux: number;
 }
 
+export interface PaginationSettings {
+  itemsPerPage: number;
+  currentPage: number;
+  totalPages: number;
+}
+
 export interface DevisData {
   infos_societe: InfosSociete;
   infos_client: InfosClient;
   produits: Produit[];
   conditions: Conditions;
   isAutoEntrepreneur?: boolean;
+  paginationSettings?: PaginationSettings;
 }

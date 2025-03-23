@@ -27,7 +27,14 @@ export default function DevisGenerator() {
         "D" +
         String(Math.floor(10000 + Math.random() * 90000)).padStart(5, "0"),
       date: new Date().toLocaleDateString("fr-FR"),
-      pied_de_page: "",
+      forme_juridique: "SARL",
+      capital: "7000 Euros",
+      siret: "210.896.764 00015",
+      rcs: "Nantes",
+      code_ape: "947A",
+      tva_intracom: "FR 77825896764000",
+      info_bancaire: "Banque Postale",
+      rib: "20042 00001 5740054W020 44",
       logo: "",
     },
     infos_client: {

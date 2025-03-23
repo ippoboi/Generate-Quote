@@ -1,7 +1,7 @@
 # app/devis_generator.py
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image, PageBreak
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
@@ -10,6 +10,7 @@ import datetime
 import base64
 import io
 import re
+import math
 
 class GenerateurDevis:
     def __init__(self):
@@ -38,114 +39,129 @@ class GenerateurDevis:
         
         elements = []
         
-        # En-tête du document (société et numéro de devis)
-        data_entete = [
-            [self._creer_bloc_societe(infos_societe), self._creer_bloc_devis(infos_societe.get('numero_devis', ''), infos_societe.get('date', datetime.datetime.now().strftime('%d/%m/%Y')))]
-        ]
+        # Gestion de la pagination
+        pagination_settings = conditions.get('paginationSettings', {})
+        items_per_page = pagination_settings.get('itemsPerPage', 10)
+        total_pages = pagination_settings.get('totalPages', math.ceil(len(produits) / items_per_page)) if items_per_page > 0 else 1
         
-        t_entete = Table(data_entete, colWidths=[doc.width/2.0]*2)
-        t_entete.setStyle(TableStyle([
-            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ]))
-        elements.append(t_entete)
-        elements.append(Spacer(1, 1*cm))
-        
-        # Bloc client
-        elements.append(self._creer_bloc_client(infos_client))
-        elements.append(Spacer(1, 1.5*cm))
-        
-        # Titre du projet
-        elements.append(Paragraph(f"<b>intitulé : {infos_client.get('description_projet', 'description du projet et/ou Produits')}</b>", self.styles['Normal']))
-        elements.append(Spacer(1, 0.5*cm))
-        
-        # Tableau des produits
-        elements.append(self._creer_tableau_produits(produits, doc.width))
-        elements.append(Spacer(1, 0.5*cm))
-        
-        # Auto-entrepreneur flag
-        is_auto_entrepreneur = conditions.get('isAutoEntrepreneur', False)
-        
-        # Totaux
-        total_ht = sum(float(p.get('total_ht', 0)) for p in produits)
-        tva_taux = 0 if is_auto_entrepreneur else float(conditions.get('tva_taux', 20))
-        tva_montant = total_ht * tva_taux / 100
-        total_ttc = total_ht + tva_montant
-        
-        elements.append(self._creer_tableau_totaux(total_ht, tva_taux, tva_montant, total_ttc, is_auto_entrepreneur))
-        elements.append(Spacer(1, 1*cm))
-        
-        # Conditions de règlement
-        if conditions:
-            validite = conditions.get('validite', '3 mois')
-            reglement = conditions.get('reglement', '40% à la commande, le solde à la livraison')
-            elements.append(Paragraph(f"<b>Validité du devis : </b>{validite}", self.styles['Normal']))
-            elements.append(Paragraph(f"<b>Conditions de règlement : </b>{reglement}", self.styles['Normal']))
-            elements.append(Paragraph("Nous restons à votre disposition pour toute information complémentaire.", self.styles['Normal']))
-            elements.append(Paragraph("Cordialement,", self.styles['Normal']))
+        # Diviser les produits en pages
+        for page_num in range(1, total_pages + 1):
+            if page_num > 1:
+                elements.append(PageBreak())
+                
+            # En-tête du document (société et numéro de devis)
+            data_entete = [
+                [self._creer_bloc_societe(infos_societe), self._creer_bloc_devis(infos_societe.get('numero_devis', ''), infos_societe.get('date', datetime.datetime.now().strftime('%d/%m/%Y')))]
+            ]
+            
+            t_entete = Table(data_entete, colWidths=[doc.width/2.0]*2)
+            t_entete.setStyle(TableStyle([
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ]))
+            elements.append(t_entete)
             elements.append(Spacer(1, 1*cm))
             
-            # Signature
-            elements.append(Paragraph("Si ce devis vous convient, veuillez nous le retourner signé précédé de la mention :", self.styles['Normal']))
+            # Bloc client
+            elements.append(self._creer_bloc_client(infos_client))
+            elements.append(Spacer(1, 1.5*cm))
             
-            if mention_accord:
-                elements.append(Paragraph(f"<b>\"{mention_accord}\"</b>", self.styles['Center']))
-            else:
-                elements.append(Paragraph("<b>\"BON POUR ACCORD ET EXECUTION DES TRAVAUX\"</b>", self.styles['Center']))
-                
+            # Titre du projet
+            elements.append(Paragraph(f"<b>intitulé : {infos_client.get('description_projet', 'description du projet et/ou Produits')}</b>", self.styles['Normal']))
             elements.append(Spacer(1, 0.5*cm))
             
-            if signature:
-                try:
-                    # Extract the base64 data from the data URI
-                    base64_data = re.sub('^data:image/.+;base64,', '', signature)
-                    signature_data = io.BytesIO(base64.b64decode(base64_data))
-                    signature_img = Image(signature_data, width=5*cm, height=2.5*cm)
-                    
-                    # Ajout de la date si disponible
-                    date_value = date_signature if date_signature else ""
-                    
-                    data_signature = [["DATE:", "SIGNATURE:"], [date_value, signature_img]]
-                    
-                    # Ajout de la mention en petit sous la signature
-                    if mention_accord:
-                        signature_mention = Paragraph(f"<font size='7'>{mention_accord}</font>", self.styles['Center'])
-                        data_signature.append(["", signature_mention])
-                    
-                    t_signature = Table(data_signature, colWidths=[doc.width/2.0]*2)
-                    t_signature.setStyle(TableStyle([
-                        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                        ('LINEBELOW', (0, 0), (0, 0), 1, colors.black),
-                        ('LINEBELOW', (1, 0), (1, 0), 1, colors.black),
-                        ('ALIGN', (1, 1), (1, 1), 'CENTER'),
-                        ('ALIGN', (1, 2), (1, 2), 'CENTER') if mention_accord else None,
-                    ]))
-                    elements.append(t_signature)
-                except Exception as e:
-                    print(f"Erreur lors du traitement de la signature: {e}")
-                    # En cas d'erreur, on revient au format sans signature
-                    data_signature = [["DATE:", "SIGNATURE:"], [date_signature if date_signature else "", ""]]
-                    t_signature = Table(data_signature, colWidths=[doc.width/2.0]*2)
-                    t_signature.setStyle(TableStyle([
-                        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                        ('LINEBELOW', (0, 0), (0, 0), 1, colors.black),
-                        ('LINEBELOW', (1, 0), (1, 0), 1, colors.black),
-                    ]))
-                    elements.append(t_signature)
-            else:
-                data_signature = [["DATE:", "SIGNATURE:"], [date_signature if date_signature else "", ""]]
-                t_signature = Table(data_signature, colWidths=[doc.width/2.0]*2)
-                t_signature.setStyle(TableStyle([
-                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                    ('LINEBELOW', (0, 0), (0, 0), 1, colors.black),
-                    ('LINEBELOW', (1, 0), (1, 0), 1, colors.black),
-                ]))
-                elements.append(t_signature)
+            # Calculer les indices des produits pour cette page
+            start_idx = (page_num - 1) * items_per_page
+            end_idx = min(start_idx + items_per_page, len(produits))
+            page_products = produits[start_idx:end_idx]
             
-            elements.append(Spacer(1, 2*cm))
-        
-        # Pied de page
-        if 'pied_de_page' in infos_societe:
-            elements.append(Paragraph(infos_societe['pied_de_page'], self.styles['Center']))
+            # Tableau des produits pour cette page
+            elements.append(self._creer_tableau_produits(page_products, doc.width))
+            elements.append(Spacer(1, 0.5*cm))
+            
+            # Auto-entrepreneur flag
+            is_auto_entrepreneur = conditions.get('isAutoEntrepreneur', False)
+            
+            # Totaux (affichés uniquement sur la dernière page)
+            if page_num == total_pages:
+                total_ht = sum(float(p.get('total_ht', 0)) for p in produits)
+                tva_taux = 0 if is_auto_entrepreneur else float(conditions.get('tva_taux', 20))
+                tva_montant = total_ht * tva_taux / 100
+                total_ttc = total_ht + tva_montant
+                
+                elements.append(self._creer_tableau_totaux(total_ht, tva_taux, tva_montant, total_ttc, is_auto_entrepreneur))
+                elements.append(Spacer(1, 1*cm))
+                
+                # Conditions de règlement (affichées uniquement sur la dernière page)
+                if conditions:
+                    validite = conditions.get('validite', '3 mois')
+                    reglement = conditions.get('reglement', '40% à la commande, le solde à la livraison')
+                    elements.append(Paragraph(f"<b>Validité du devis : </b>{validite}", self.styles['Normal']))
+                    elements.append(Paragraph(f"<b>Conditions de règlement : </b>{reglement}", self.styles['Normal']))
+                    elements.append(Paragraph("Nous restons à votre disposition pour toute information complémentaire.", self.styles['Normal']))
+                    elements.append(Paragraph("Cordialement,", self.styles['Normal']))
+                    elements.append(Spacer(1, 1*cm))
+                    
+                    # Signature (uniquement sur la dernière page)
+                    elements.append(Paragraph("Si ce devis vous convient, veuillez nous le retourner signé précédé de la mention :", self.styles['Normal']))
+                    
+                    if mention_accord:
+                        elements.append(Paragraph(f"<b>\"{mention_accord}\"</b>", self.styles['Center']))
+                    else:
+                        elements.append(Paragraph("<b>\"BON POUR ACCORD ET EXECUTION DES TRAVAUX\"</b>", self.styles['Center']))
+                        
+                    elements.append(Spacer(1, 0.5*cm))
+                    
+                    if signature:
+                        try:
+                            # Extract the base64 data from the data URI
+                            base64_data = re.sub('^data:image/.+;base64,', '', signature)
+                            signature_data = io.BytesIO(base64.b64decode(base64_data))
+                            signature_img = Image(signature_data, width=5*cm, height=2.5*cm)
+                            
+                            # Ajout de la date si disponible
+                            date_value = date_signature if date_signature else ""
+                            
+                            data_signature = [["DATE:", "SIGNATURE:"], [date_value, signature_img]]
+                            
+                            # Ajout de la mention en petit sous la signature
+                            if mention_accord:
+                                signature_mention = Paragraph(f"<font size='7'>{mention_accord}</font>", self.styles['Center'])
+                                data_signature.append(["", signature_mention])
+                            
+                            t_signature = Table(data_signature, colWidths=[doc.width/2.0]*2)
+                            t_signature.setStyle(TableStyle([
+                                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                                ('LINEBELOW', (0, 0), (0, 0), 1, colors.black),
+                                ('LINEBELOW', (1, 0), (1, 0), 1, colors.black),
+                                ('ALIGN', (1, 1), (1, 1), 'CENTER'),
+                                ('ALIGN', (1, 2), (1, 2), 'CENTER') if mention_accord else None,
+                            ]))
+                            elements.append(t_signature)
+                        except Exception as e:
+                            print(f"Erreur lors du traitement de la signature: {e}")
+                            # En cas d'erreur, on revient au format sans signature
+                            data_signature = [["DATE:", "SIGNATURE:"], [date_signature if date_signature else "", ""]]
+                            t_signature = Table(data_signature, colWidths=[doc.width/2.0]*2)
+                            t_signature.setStyle(TableStyle([
+                                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                                ('LINEBELOW', (0, 0), (0, 0), 1, colors.black),
+                                ('LINEBELOW', (1, 0), (1, 0), 1, colors.black),
+                            ]))
+                            elements.append(t_signature)
+                    else:
+                        data_signature = [["DATE:", "SIGNATURE:"], [date_signature if date_signature else "", ""]]
+                        t_signature = Table(data_signature, colWidths=[doc.width/2.0]*2)
+                        t_signature.setStyle(TableStyle([
+                            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                            ('LINEBELOW', (0, 0), (0, 0), 1, colors.black),
+                            ('LINEBELOW', (1, 0), (1, 0), 1, colors.black),
+                        ]))
+                        elements.append(t_signature)
+                    
+                    elements.append(Spacer(1, 2*cm))
+            
+            # Pied de page pour chaque page
+            elements.append(self._creer_pied_de_page(infos_societe, page_num, total_pages))
         
         # Génération du document
         doc.build(elements)
@@ -298,3 +314,41 @@ class GenerateurDevis:
         )
         
         return wrapper_table
+    
+    def _creer_pied_de_page(self, infos_societe, page_num, total_pages):
+        """Crée le pied de page avec les informations légales de la société"""
+        forme_juridique = infos_societe.get('forme_juridique', '')
+        capital = infos_societe.get('capital', '')
+        siret = infos_societe.get('siret', '')
+        rcs = infos_societe.get('rcs', '')
+        code_ape = infos_societe.get('code_ape', '')
+        tva_intracom = infos_societe.get('tva_intracom', '')
+        info_bancaire = infos_societe.get('info_bancaire', '')
+        rib = infos_societe.get('rib', '')
+        
+        # Construire le texte du pied de page
+        footer_text = ""
+        if forme_juridique and capital:
+            footer_text += f"{forme_juridique} au capital de {capital}"
+        
+        if siret:
+            footer_text += f" - N° Siret {siret}"
+        
+        if rcs:
+            footer_text += f" RCS {rcs}"
+        
+        if code_ape:
+            footer_text += f" - Code APE {code_ape}"
+        
+        if tva_intracom:
+            footer_text += f" - N° TVA Intracom. {tva_intracom}"
+        
+        if info_bancaire and rib:
+            footer_text += f"\n{info_bancaire} RIB: {rib}"
+        
+        footer_table = Table([
+            [Paragraph(footer_text, self.styles['Center'])],
+            [Paragraph(f"Page {page_num} / {total_pages}", self.styles['Center'])]
+        ], colWidths=[100*cm])  # Largeur excessive pour forcer l'utilisation de toute la largeur
+        
+        return footer_table
