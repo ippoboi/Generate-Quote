@@ -123,21 +123,27 @@ export default function DevisGenerator() {
   };
 
   return (
-    <div className="container mx-auto py-8">
-      <h1 className="text-3xl font-bold mb-4 text-center">
-        Générateur de Devis
-      </h1>
+    <div className="container mx-auto p-12 space-y-8">
+      <div className="flex flex-col gap-2">
+        <h1 className="text-3xl font-bold">Générateur de Devis</h1>
+        <p className="text-sm text-muted-foreground">
+          Générez un devis en quelques clics
+        </p>
+      </div>
 
-      <div className="flex items-center justify-center space-x-2 mb-8">
-        <Checkbox
-          id="auto-entrepreneur"
-          checked={isAutoEntrepreneur}
-          onCheckedChange={handleAutoEntrepreneurChange}
-        />
-        <Label htmlFor="auto-entrepreneur" className="font-medium text-sm">
-          Je suis Auto-entrepreneur avec chiffre d&apos;affaires &lt; 25 000€
-          (pas de TVA applicable)
-        </Label>
+      <div className="flex flex-col gap-2">
+        <h2 className="text-lg font-bold">Options</h2>
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            id="auto-entrepreneur"
+            checked={isAutoEntrepreneur}
+            onCheckedChange={handleAutoEntrepreneurChange}
+          />
+          <Label htmlFor="auto-entrepreneur" className="font-medium text-sm">
+            Je suis Auto-entrepreneur avec chiffre d&apos;affaires &lt; 25 000€
+            (pas de TVA applicable)
+          </Label>
+        </div>
       </div>
 
       <EditableDevis data={devisData} onUpdate={updateDevisData} />
