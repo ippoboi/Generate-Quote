@@ -125,9 +125,9 @@ export default function DevisGenerator() {
   return (
     <div className="container mx-auto p-12 space-y-8">
       <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold">Générateur de Devis</h1>
+        <h1 className="text-3xl font-bold">Devis #1</h1>
         <p className="text-sm text-muted-foreground">
-          Générez un devis en quelques clics
+          Ceci est une description du devis
         </p>
       </div>
 

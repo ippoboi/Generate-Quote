@@ -8,6 +8,7 @@ import {
   ChevronLeft,
   ChevronRight,
   FilePlus,
+  Save,
 } from "lucide-react";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Button } from "./ui/button";
@@ -44,15 +45,47 @@ const TVA_RATES = [
   { value: "2.1", label: "2.1% - Taux particulier" },
 ];
 
+// Key for localStorage
+const DEVIS_STORAGE_KEY = "saved_devis_data";
+
 export function EditableDevis({ data, onUpdate }: EditableDevisProps) {
-  const [localData, setLocalData] = useState<DevisData>({
-    ...data,
-    paginationSettings: data.paginationSettings || {
-      itemsPerPage: 10,
-      currentPage: 1,
-      totalPages: Math.ceil(data.produits.length / 10) || 1,
-    },
-  });
+  // Load initial data from localStorage or use prop data
+  const loadInitialData = () => {
+    if (typeof window !== "undefined") {
+      const savedData = localStorage.getItem(DEVIS_STORAGE_KEY);
+      if (savedData) {
+        try {
+          const parsed = JSON.parse(savedData);
+          // Ensure we have pagination settings
+          return {
+            ...parsed,
+            paginationSettings: parsed.paginationSettings || {
+              itemsPerPage: 10,
+              currentPage: 1,
+              totalPages: Math.ceil(parsed.produits.length / 10) || 1,
+            },
+          };
+        } catch (e) {
+          console.error("Error parsing saved devis data", e);
+        }
+      }
+    }
+
+    // Fall back to prop data
+    return {
+      ...data,
+      paginationSettings: data.paginationSettings || {
+        itemsPerPage: 10,
+        currentPage: 1,
+        totalPages: Math.ceil(data.produits.length / 10) || 1,
+      },
+    };
+  };
+
+  const [localData, setLocalData] = useState<DevisData>(loadInitialData());
+
+  // State to track if there are unsaved changes
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   // Ref for product section to measure height
   const productSectionRef = useRef<HTMLDivElement>(null);
@@ -65,8 +98,64 @@ export function EditableDevis({ data, onUpdate }: EditableDevisProps) {
 
   // Update localData when data prop changes (including isAutoEntrepreneur)
   useEffect(() => {
-    setLocalData(data);
+    // Only update if there's no saved data
+    if (
+      typeof window !== "undefined" &&
+      !localStorage.getItem(DEVIS_STORAGE_KEY)
+    ) {
+      setLocalData(data);
+    }
   }, [data]);
+
+  // Save to localStorage whenever localData changes
+  useEffect(() => {
+    if (typeof window !== "undefined" && localData) {
+      localStorage.setItem(DEVIS_STORAGE_KEY, JSON.stringify(localData));
+      setHasUnsavedChanges(true);
+
+      // Auto-save debounce to prevent excessive writes
+      const saveTimeout = setTimeout(() => {
+        onUpdate(localData);
+        setHasUnsavedChanges(false);
+      }, 2000);
+
+      return () => clearTimeout(saveTimeout);
+    }
+  }, [localData, onUpdate]);
+
+  // Update isAutoEntrepreneur when it changes from props
+  useEffect(() => {
+    if (data.isAutoEntrepreneur !== localData.isAutoEntrepreneur) {
+      setLocalData((prevData) => ({
+        ...prevData,
+        isAutoEntrepreneur: data.isAutoEntrepreneur,
+      }));
+    }
+  }, [data.isAutoEntrepreneur, localData.isAutoEntrepreneur]);
+
+  // Clear localStorage when user manually saves or when component unmounts
+  const clearSavedData = useCallback(() => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(DEVIS_STORAGE_KEY);
+      toast.success("Devis sauvegardé");
+      setHasUnsavedChanges(false);
+      onUpdate(localData);
+    }
+  }, [localData, onUpdate]);
+
+  // Add beforeunload warning if there are unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = "";
+        return "";
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [hasUnsavedChanges]);
 
   // Create a dependency key for product changes
   const productsDepsKey = localData.produits
@@ -342,8 +431,7 @@ export function EditableDevis({ data, onUpdate }: EditableDevisProps) {
             onClick={goToPreviousPage}
             disabled={currentPage === 1}
           >
-            <ChevronLeft className="h-4 w-4 mr-1" />
-            Page précédente
+            <ChevronLeft className="h-4 w-4" />
           </Button>
           <span className="text-sm">
             Page {currentPage} sur{" "}
@@ -353,21 +441,33 @@ export function EditableDevis({ data, onUpdate }: EditableDevisProps) {
             variant="outline"
             size="sm"
             onClick={goToNextPage}
-            disabled={currentPage === localData.paginationSettings?.totalPages}
+            disabled={
+              currentPage === (localData.paginationSettings?.totalPages || 1)
+            }
           >
-            Page suivante
-            <ChevronRight className="h-4 w-4 ml-1" />
+            <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          className="flex items-center gap-1"
-          onClick={addPage}
-        >
-          <FilePlus className="h-4 w-4" />
-          <span>Ajouter une page</span>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant={hasUnsavedChanges ? "default" : "outline"}
+            size="sm"
+            className="flex items-center gap-1"
+            onClick={clearSavedData}
+          >
+            <Save className="h-4 w-4" />
+            <span>Sauvegarder</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-1"
+            onClick={addPage}
+          >
+            <FilePlus className="h-4 w-4" />
+            <span>Ajouter une page</span>
+          </Button>
+        </div>
       </div>
 
       {/* En-tête du devis */}

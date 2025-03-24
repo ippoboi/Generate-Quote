@@ -1,7 +1,7 @@
 # app/devis_generator.py
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image, PageBreak
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image, PageBreak, Frame, PageTemplate
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
@@ -33,16 +33,50 @@ class GenerateurDevis:
             mention_accord (str, optional): Mention d'accord
             date_signature (str, optional): Date de signature
         """
-        doc = SimpleDocTemplate(nom_fichier, pagesize=A4, 
-                               leftMargin=1.5*cm, rightMargin=1.5*cm,
-                               topMargin=1.5*cm, bottomMargin=1.5*cm)
-        
-        elements = []
+        # Auto-entrepreneur flag
+        is_auto_entrepreneur = conditions.get('isAutoEntrepreneur', False)
         
         # Gestion de la pagination
         pagination_settings = conditions.get('paginationSettings', {})
         items_per_page = pagination_settings.get('itemsPerPage', 10)
         total_pages = pagination_settings.get('totalPages', math.ceil(len(produits) / items_per_page)) if items_per_page > 0 else 1
+        
+        # Créer un document avec marges réduites
+        doc = SimpleDocTemplate(nom_fichier, pagesize=A4, 
+                               leftMargin=1*cm, rightMargin=1*cm,
+                               topMargin=0.5*cm, bottomMargin=2.5*cm)
+        
+        # Stocker les infos de pied de page pour les utiliser dans le template
+        self.footer_info = {
+            'infos_societe': infos_societe,
+            'is_auto_entrepreneur': is_auto_entrepreneur,
+            'total_pages': total_pages
+        }
+        
+        # Définir un template de page avec un cadre pour le contenu débutant tout en haut
+        content_frame = Frame(
+            doc.leftMargin,            # X: marge gauche
+            doc.bottomMargin,          # Y: laisse l'espace pour le pied de page
+            doc.width,                 # Largeur: utilise toute la largeur disponible
+            doc.height - doc.topMargin, # Hauteur: utilise toute la hauteur sauf le haut et le bas
+            id='content',
+            topPadding=0,             # Pas de padding en haut pour commencer au sommet
+            bottomPadding=0,          # Pas de padding en bas
+            leftPadding=0,            # Pas de padding à gauche
+            rightPadding=0            # Pas de padding à droite
+        )
+        
+        # Créer le template de page avec une fonction de génération du pied de page
+        page_template = PageTemplate(
+            id='DevisTemplate',
+            frames=[content_frame],
+            onPage=self._ajouter_pied_de_page
+        )
+        
+        # Appliquer le template au document
+        doc.addPageTemplates([page_template])
+        
+        elements = []
         
         # Diviser les produits en pages
         for page_num in range(1, total_pages + 1):
@@ -59,15 +93,15 @@ class GenerateurDevis:
                 ('VALIGN', (0, 0), (-1, -1), 'TOP'),
             ]))
             elements.append(t_entete)
-            elements.append(Spacer(1, 1*cm))
+            elements.append(Spacer(1, 0.3*cm))
             
             # Bloc client
             elements.append(self._creer_bloc_client(infos_client))
-            elements.append(Spacer(1, 1.5*cm))
+            elements.append(Spacer(1, 0.8*cm))
             
             # Titre du projet
             elements.append(Paragraph(f"<b>intitulé : {infos_client.get('description_projet', 'description du projet et/ou Produits')}</b>", self.styles['Normal']))
-            elements.append(Spacer(1, 0.5*cm))
+            elements.append(Spacer(1, 0.3*cm))
             
             # Calculer les indices des produits pour cette page
             start_idx = (page_num - 1) * items_per_page
@@ -76,10 +110,7 @@ class GenerateurDevis:
             
             # Tableau des produits pour cette page
             elements.append(self._creer_tableau_produits(page_products, doc.width))
-            elements.append(Spacer(1, 0.5*cm))
-            
-            # Auto-entrepreneur flag
-            is_auto_entrepreneur = conditions.get('isAutoEntrepreneur', False)
+            elements.append(Spacer(1, 0.3*cm))
             
             # Totaux (affichés uniquement sur la dernière page)
             if page_num == total_pages:
@@ -89,7 +120,7 @@ class GenerateurDevis:
                 total_ttc = total_ht + tva_montant
                 
                 elements.append(self._creer_tableau_totaux(total_ht, tva_taux, tva_montant, total_ttc, is_auto_entrepreneur))
-                elements.append(Spacer(1, 1*cm))
+                elements.append(Spacer(1, 0.6*cm))
                 
                 # Conditions de règlement (affichées uniquement sur la dernière page)
                 if conditions:
@@ -99,7 +130,7 @@ class GenerateurDevis:
                     elements.append(Paragraph(f"<b>Conditions de règlement : </b>{reglement}", self.styles['Normal']))
                     elements.append(Paragraph("Nous restons à votre disposition pour toute information complémentaire.", self.styles['Normal']))
                     elements.append(Paragraph("Cordialement,", self.styles['Normal']))
-                    elements.append(Spacer(1, 1*cm))
+                    elements.append(Spacer(1, 0.6*cm))
                     
                     # Signature (uniquement sur la dernière page)
                     elements.append(Paragraph("Si ce devis vous convient, veuillez nous le retourner signé précédé de la mention :", self.styles['Normal']))
@@ -109,7 +140,7 @@ class GenerateurDevis:
                     else:
                         elements.append(Paragraph("<b>\"BON POUR ACCORD ET EXECUTION DES TRAVAUX\"</b>", self.styles['Center']))
                         
-                    elements.append(Spacer(1, 0.5*cm))
+                    elements.append(Spacer(1, 0.3*cm))
                     
                     if signature:
                         try:
@@ -158,14 +189,94 @@ class GenerateurDevis:
                         ]))
                         elements.append(t_signature)
                     
-                    elements.append(Spacer(1, 2*cm))
-            
-            # Pied de page pour chaque page
-            elements.append(self._creer_pied_de_page(infos_societe, page_num, total_pages))
+                    elements.append(Spacer(1, 1*cm))
         
         # Génération du document
         doc.build(elements)
+    
+    def _ajouter_pied_de_page(self, canvas, doc):
+        """Fonction appelée pour chaque page pour dessiner le pied de page"""
+        page_num = canvas.getPageNumber()
         
+        # Créer le contenu du pied de page
+        footer_text = self._generer_texte_pied_de_page(
+            self.footer_info['infos_societe'],
+            self.footer_info['is_auto_entrepreneur']
+        )
+        
+        # Ajouter le numéro de page au texte du pied de page avec un espacement minimal
+        footer_text += f"<br/><font size='8'>Page {page_num} / {self.footer_info['total_pages']}</font>"
+        
+        # Créer un style avec wrap pour le pied de page
+        footer_style = ParagraphStyle(
+            'Footer',
+            parent=self.styles['Center'],
+            alignment=1,  # Center
+            wordWrap='CJK',  # Force le retour à la ligne
+            fontSize=8,     # Taille de police réduite pour le pied de page
+            leading=9,      # Espacement entre les lignes très réduit (normal est ~12)
+            spaceBefore=0,  # Pas d'espace avant
+            spaceAfter=0    # Pas d'espace après
+        )
+        
+        # Sauvegarder l'état du canvas
+        canvas.saveState()
+        
+        # Calculer la largeur maximale pour le pied de page
+        max_footer_width = 16*cm
+        
+        # Centrer le texte du pied de page
+        x = (doc.pagesize[0] - max_footer_width) / 2
+        
+        # Positionner le pied de page en bas de la page
+        y = 1*cm  # Distance du bas de la page
+        
+        # Créer et dessiner le pied de page
+        p = Paragraph(footer_text, footer_style)
+        w, h = p.wrap(max_footer_width, doc.bottomMargin)
+        p.drawOn(canvas, x, y)
+        
+        # Restaurer l'état du canvas
+        canvas.restoreState()
+    
+    def _generer_texte_pied_de_page(self, infos_societe, is_auto_entrepreneur):
+        """Génère le texte du pied de page"""
+        forme_juridique = infos_societe.get('forme_juridique', '')
+        capital = infos_societe.get('capital', '')
+        siret = infos_societe.get('siret', '')
+        rcs = infos_societe.get('rcs', '')
+        code_ape = infos_societe.get('code_ape', '')
+        tva_intracom = infos_societe.get('tva_intracom', '')
+        info_bancaire = infos_societe.get('info_bancaire', '')
+        rib = infos_societe.get('rib', '')
+        
+        # Construire le texte du pied de page
+        footer_text = ""
+        if forme_juridique:
+            if is_auto_entrepreneur:
+                # Pour auto-entrepreneur, pas de mention du capital
+                footer_text += f"{forme_juridique}"
+            elif capital:
+                # Pour les autres formes juridiques, inclure le capital
+                footer_text += f"{forme_juridique} au capital de {capital}"
+        
+        if siret:
+            footer_text += f" - N° Siret {siret}"
+        
+        if rcs:
+            footer_text += f" RCS {rcs}"
+        
+        if code_ape:
+            footer_text += f" - Code APE {code_ape}"
+        
+        if tva_intracom:
+            footer_text += f" - N° TVA Intracom. {tva_intracom}"
+        
+        if info_bancaire and rib:
+            footer_text += f"<br/>{info_bancaire} RIB: {rib}"
+            
+        return footer_text
+    
     def _creer_bloc_societe(self, infos_societe):
         """Crée le bloc avec les informations de la société"""
         nom = infos_societe.get('nom', 'le nom de votre société')
@@ -245,6 +356,17 @@ class GenerateurDevis:
         # En-tête du tableau
         data = [["Qté", "Désignation", "Prix Unit.", "Total HT"]]
         
+        # Style pour la désignation avec wrap et support de HTML
+        style_designation = ParagraphStyle(
+            'Designation',
+            parent=self.styles['Normal'],
+            wordWrap='CJK',  # Force le retour à la ligne
+            spaceAfter=3,    # Réduit de 6 à 3
+            spaceBefore=3,   # Réduit de 6 à 3
+            bulletIndent=10, # Indentation des puces
+            leftIndent=5     # Indentation gauche
+        )
+        
         # Ajout des produits
         for produit in produits:
             qte = produit.get('quantite', '')
@@ -252,7 +374,37 @@ class GenerateurDevis:
             prix_unit = float(produit.get('prix_unitaire', 0))
             total_ht = float(produit.get('total_ht', 0))
             
-            data.append([qte, designation, f"{prix_unit:.2f}", f"{total_ht:.2f}"])
+            try:
+                # Prétraiter la désignation pour conserver les sauts de ligne
+                # Remplacer les retours à la ligne simples par des balises <br/>
+                designation = designation.replace('\n', '<br/>')
+                
+                # Traiter les listes à puces simples en utilisant le format supporté par ReportLab
+                lines = designation.split('<br/>')
+                formatted_lines = []
+                
+                for line in lines:
+                    # Vérifier si la ligne commence par un tiret, point, étoile ou puce
+                    if line.strip().startswith('-') or line.strip().startswith('•') or line.strip().startswith('*'):
+                        # Enlever le tiret/bullet et les espaces en début de ligne
+                        text = line.strip()[1:].strip()
+                        # Ajouter le texte au format bullet de ReportLab
+                        formatted_lines.append(f"<bullet>&bull;</bullet>{text}")
+                    else:
+                        formatted_lines.append(line)
+                
+                processed_designation = '<br/>'.join(formatted_lines)
+                
+                # Wrap text in designation by creating a Paragraph object with HTML support
+                designation_para = Paragraph(processed_designation, style_designation)
+                
+                data.append([qte, designation_para, f"{prix_unit:.2f} €", f"{total_ht:.2f} €"])
+                
+            except Exception as e:
+                print(f"Erreur lors du traitement de la désignation: {e}")
+                # En cas d'erreur, utiliser le texte brut sans formatage
+                designation_para = Paragraph(designation, self.styles['Normal'])
+                data.append([qte, designation_para, f"{prix_unit:.2f} €", f"{total_ht:.2f} €"])
         
         # Calcul des largeurs de colonnes proportionnelles à la largeur du document
         col_widths = [
@@ -263,12 +415,15 @@ class GenerateurDevis:
         ]
         
         # Création du tableau
-        tableau = Table(data, colWidths=col_widths)
+        tableau = Table(data, colWidths=col_widths, repeatRows=1)  # repeatRows ensures header is repeated on new pages
         tableau.setStyle(TableStyle([
             ('GRID', (0, 0), (-1, -1), 1, colors.lavender),
             ('BACKGROUND', (0, 0), (-1, 0), colors.lavender),
             ('ALIGN', (0, 0), (0, -1), 'CENTER'),  # Alignement centre pour la quantité
             ('ALIGN', (2, 0), (3, -1), 'RIGHT'),   # Alignement droite pour les prix
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),   # Alignement vertical en haut pour toutes les cellules
+            ('LEFTPADDING', (1, 0), (1, -1), 10),  # Plus de padding à gauche pour la désignation
+            ('RIGHTPADDING', (1, 0), (1, -1), 10), # Plus de padding à droite pour la désignation
         ]))
         
         return tableau
@@ -314,41 +469,3 @@ class GenerateurDevis:
         )
         
         return wrapper_table
-    
-    def _creer_pied_de_page(self, infos_societe, page_num, total_pages):
-        """Crée le pied de page avec les informations légales de la société"""
-        forme_juridique = infos_societe.get('forme_juridique', '')
-        capital = infos_societe.get('capital', '')
-        siret = infos_societe.get('siret', '')
-        rcs = infos_societe.get('rcs', '')
-        code_ape = infos_societe.get('code_ape', '')
-        tva_intracom = infos_societe.get('tva_intracom', '')
-        info_bancaire = infos_societe.get('info_bancaire', '')
-        rib = infos_societe.get('rib', '')
-        
-        # Construire le texte du pied de page
-        footer_text = ""
-        if forme_juridique and capital:
-            footer_text += f"{forme_juridique} au capital de {capital}"
-        
-        if siret:
-            footer_text += f" - N° Siret {siret}"
-        
-        if rcs:
-            footer_text += f" RCS {rcs}"
-        
-        if code_ape:
-            footer_text += f" - Code APE {code_ape}"
-        
-        if tva_intracom:
-            footer_text += f" - N° TVA Intracom. {tva_intracom}"
-        
-        if info_bancaire and rib:
-            footer_text += f"\n{info_bancaire} RIB: {rib}"
-        
-        footer_table = Table([
-            [Paragraph(footer_text, self.styles['Center'])],
-            [Paragraph(f"Page {page_num} / {total_pages}", self.styles['Center'])]
-        ], colWidths=[100*cm])  # Largeur excessive pour forcer l'utilisation de toute la largeur
-        
-        return footer_table

@@ -3,6 +3,9 @@ import {
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { DownloadIcon, SaveIcon } from "lucide-react";
@@ -12,9 +15,15 @@ export default function AppHeader() {
       <div className="flex items-center gap-2">
         <SidebarTrigger className="-ml-1" />
         <Breadcrumb>
-          <BreadcrumbItem className="hidden md:block">
-            <BreadcrumbLink href="#">Titre du devis</BreadcrumbLink>
-          </BreadcrumbItem>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink href="/">Générateur de devis</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>Devis #1</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
         </Breadcrumb>
       </div>
       <div className="flex items-center gap-2">

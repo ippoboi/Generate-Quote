@@ -50,6 +50,13 @@ export interface PaginationSettings {
 }
 
 export interface DevisData {
+  id: string;
+  title: string;
+  description?: string;
+  tags?: string[];
+  created_at: Date;
+  updated_at: Date;
+  isArchived: boolean;
   infos_societe: InfosSociete;
   infos_client: InfosClient;
   produits: Produit[];
