@@ -1,6 +1,11 @@
 "use client";
 
-import { File, SettingsIcon } from "lucide-react";
+import {
+  File,
+  LayoutDashboardIcon,
+  ListIcon,
+  SettingsIcon,
+} from "lucide-react";
 import * as React from "react";
 
 import { NavMain } from "@/components/navigation/nav-main";
@@ -18,16 +23,23 @@ import {
 import { NavHistory } from "./nav-documents";
 
 const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
   navSecondary: [
     {
       title: "Settings",
       url: "#",
       icon: SettingsIcon,
+    },
+  ],
+  navMain: [
+    {
+      title: "Dashboard",
+      url: "/dashboard",
+      icon: LayoutDashboardIcon,
+    },
+    {
+      title: "Devis",
+      url: "/dashboard/devis",
+      icon: ListIcon,
     },
   ],
   history: [
@@ -65,12 +77,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain />
+        <NavMain items={data.navMain} />
         <NavHistory items={data.history} />
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser />
       </SidebarFooter>
     </Sidebar>
   );
