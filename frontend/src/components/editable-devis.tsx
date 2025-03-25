@@ -49,40 +49,15 @@ const TVA_RATES = [
 const DEVIS_STORAGE_KEY = "saved_devis_data";
 
 export function EditableDevis({ data, onUpdate }: EditableDevisProps) {
-  // Load initial data from localStorage or use prop data
-  const loadInitialData = () => {
-    if (typeof window !== "undefined") {
-      const savedData = localStorage.getItem(DEVIS_STORAGE_KEY);
-      if (savedData) {
-        try {
-          const parsed = JSON.parse(savedData);
-          // Ensure we have pagination settings
-          return {
-            ...parsed,
-            paginationSettings: parsed.paginationSettings || {
-              itemsPerPage: 10,
-              currentPage: 1,
-              totalPages: Math.ceil(parsed.produits.length / 10) || 1,
-            },
-          };
-        } catch (e) {
-          console.error("Error parsing saved devis data", e);
-        }
-      }
-    }
-
-    // Fall back to prop data
-    return {
-      ...data,
-      paginationSettings: data.paginationSettings || {
-        itemsPerPage: 10,
-        currentPage: 1,
-        totalPages: Math.ceil(data.produits.length / 10) || 1,
-      },
-    };
-  };
-
-  const [localData, setLocalData] = useState<DevisData>(loadInitialData());
+  // Initialize with prop data only, and move localStorage operations to useEffect
+  const [localData, setLocalData] = useState<DevisData>({
+    ...data,
+    paginationSettings: data.paginationSettings || {
+      itemsPerPage: 10,
+      currentPage: 1,
+      totalPages: Math.ceil(data.produits.length / 10) || 1,
+    },
+  });
 
   // State to track if there are unsaved changes
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -95,6 +70,29 @@ export function EditableDevis({ data, onUpdate }: EditableDevisProps) {
   // A4 height in pixels (roughly 1123px at 96dpi)
   const A4_HEIGHT_PX = 1123;
   const MAX_CONTENT_HEIGHT = A4_HEIGHT_PX - 500; // Adjust based on header/footer size
+
+  // Load data from localStorage after component mounts
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedData = localStorage.getItem(DEVIS_STORAGE_KEY);
+      if (savedData) {
+        try {
+          const parsed = JSON.parse(savedData);
+          // Ensure we have pagination settings
+          setLocalData({
+            ...parsed,
+            paginationSettings: parsed.paginationSettings || {
+              itemsPerPage: 10,
+              currentPage: 1,
+              totalPages: Math.ceil(parsed.produits.length / 10) || 1,
+            },
+          });
+        } catch (e) {
+          console.error("Error parsing saved devis data", e);
+        }
+      }
+    }
+  }, []);
 
   // Update localData when data prop changes (including isAutoEntrepreneur)
   useEffect(() => {
