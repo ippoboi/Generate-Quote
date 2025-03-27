@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify, send_file, current_app
 import os
 import uuid
+import json
 from app.devis_generator import GenerateurDevis
 
 bp = Blueprint('main', __name__)
@@ -64,4 +65,34 @@ def download_file(filename):
             'success': False,
             'error': str(e)
         }), 404
+
+@bp.route('/api/export-devis', methods=['POST'])
+def export_devis():
+    """API endpoint pour exporter les données du devis au format JSON"""
+    try:
+        data = request.json
+        
+        # Générer un nom de fichier unique
+        filename = f"devis_export_{uuid.uuid4().hex}.json"
+        temp_folder = current_app.config['TEMP_FOLDER']
+        filepath = os.path.join(temp_folder, filename)
+        
+        # Créer le dossier temp s'il n'existe pas
+        os.makedirs(temp_folder, exist_ok=True)
+        
+        # Écrire les données dans un fichier JSON
+        with open(filepath, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        
+        # Retourner le chemin du fichier
+        return jsonify({
+            'success': True,
+            'file': filename
+        })
+    
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 

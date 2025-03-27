@@ -1,19 +1,17 @@
 "use client";
 
-import { DevisData, Produit, PaginationSettings } from "@/types/devis";
+import { DevisData, PaginationSettings, Produit } from "@/types/devis";
 import {
-  PlusCircle,
-  Trash2,
-  Upload,
   ChevronLeft,
   ChevronRight,
-  FilePlus,
-  Save,
+  PlusCircle,
+  Settings,
+  Trash2,
 } from "lucide-react";
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { Textarea } from "./ui/textarea";
 import {
   Select,
   SelectContent,
@@ -21,8 +19,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
-import Image from "next/image";
-import { toast } from "sonner";
 import {
   Table,
   TableBody,
@@ -31,6 +27,7 @@ import {
   TableHeader,
   TableRow,
 } from "./ui/table";
+import { Textarea } from "./ui/textarea";
 
 interface EditableDevisProps {
   data: DevisData;
@@ -187,41 +184,6 @@ export function EditableDevis({ data, onUpdate }: EditableDevisProps) {
         [field]: value,
       },
     });
-  };
-
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Check file size (max 2MB)
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error("Le fichier est trop volumineux", {
-        description: "La taille maximale est de 2MB",
-      });
-      return;
-    }
-
-    // Check file type
-    if (!file.type.startsWith("image/")) {
-      toast.error("Format de fichier invalide", {
-        description: "Veuillez choisir une image (JPG, PNG, etc.)",
-      });
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const base64String = event.target?.result as string;
-      setLocalData((prev) => ({
-        ...prev,
-        infos_societe: {
-          ...prev.infos_societe,
-          logo: base64String,
-        },
-      }));
-      toast.success("Logo téléchargé avec succès");
-    };
-    reader.readAsDataURL(file);
   };
 
   // Mettre à jour les champs du client
@@ -419,163 +381,143 @@ export function EditableDevis({ data, onUpdate }: EditableDevisProps) {
   }, [displayedProducts, heightWarning, MAX_CONTENT_HEIGHT, addPage]);
 
   return (
-    <div className="border rounded-lg overflow-hidden shadow-sm bg-white">
+    <div className="border rounded-lg overflow-hidden bg-white">
       {/* Top pagination controls */}
-      <div className="p-4 bg-gray-50 border-b flex justify-between items-center">
+      <div className="p-4  border-b flex justify-between items-center">
         <div className="flex items-center gap-2">
           <Button
-            variant="outline"
             size="sm"
-            onClick={goToPreviousPage}
-            disabled={currentPage === 1}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <span className="text-sm">
-            Page {currentPage} sur{" "}
-            {localData.paginationSettings?.totalPages || 1}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={goToNextPage}
-            disabled={
-              currentPage === (localData.paginationSettings?.totalPages || 1)
+            variant={"ghost"}
+            onClick={() =>
+              setLocalData({
+                ...localData,
+                paginationSettings: {
+                  ...(localData.paginationSettings as PaginationSettings),
+                  currentPage: 1,
+                },
+              })
+            }
+            className={
+              currentPage === 1 ? "bg-[#F4F5F6] text-black" : "text-gray-500"
             }
           >
-            <ChevronRight className="h-4 w-4" />
+            1
           </Button>
-        </div>
-        <div className="flex items-center gap-2">
+
+          {Array.from(
+            { length: (localData.paginationSettings?.totalPages || 1) - 1 },
+            (_, i) => i + 2
+          ).map((pageNum) => (
+            <Button
+              key={pageNum}
+              size="sm"
+              variant={"ghost"}
+              onClick={() =>
+                setLocalData({
+                  ...localData,
+                  paginationSettings: {
+                    ...(localData.paginationSettings as PaginationSettings),
+                    currentPage: pageNum,
+                  },
+                })
+              }
+              className={
+                currentPage === pageNum
+                  ? "bg-[#F4F5F6] text-black"
+                  : "text-gray-500"
+              }
+            >
+              {pageNum}
+            </Button>
+          ))}
+
           <Button
-            variant={hasUnsavedChanges ? "default" : "outline"}
             size="sm"
-            className="flex items-center gap-1"
-            onClick={clearSavedData}
-          >
-            <Save className="h-4 w-4" />
-            <span>Sauvegarder</span>
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex items-center gap-1"
+            variant="ghost"
             onClick={addPage}
+            className="text-gray-500"
           >
-            <FilePlus className="h-4 w-4" />
-            <span>Ajouter une page</span>
+            +
           </Button>
         </div>
+        <Button variant="ghost" size="sm">
+          <Settings className="w-4 h-4 text-muted-foreground" />
+        </Button>
       </div>
 
       {/* En-tête du devis */}
-      <div className="p-6 bg-gray-50 border-b">
+      <div className="p-6 ">
         <div className="flex justify-between gap-8">
           {/* Informations société */}
-          <div className="flex flex-col max-w-sm">
-            <div className="mb-4 relative">
-              {localData.infos_societe.logo ? (
-                <div className="rounded-lg overflow-hidden h-[100px] w-[100px] group">
-                  <div className="relative h-full w-full">
-                    <Image
-                      src={localData.infos_societe.logo}
-                      alt="Logo entreprise"
-                      className="object-contain"
-                      fill
-                      sizes="150px"
-                      priority
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute -top-2 -right-2 rounded-full p-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={() =>
-                        setLocalData({
-                          ...localData,
-                          infos_societe: {
-                            ...localData.infos_societe,
-                            logo: "",
-                          },
-                        })
-                      }
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-center">
-                  <label className="cursor-pointer flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700">
-                    <Upload className="h-4 w-4" />
-                    <span>Ajouter un logo</span>
-                    <input
-                      type="file"
-                      className="hidden"
-                      onChange={handleLogoUpload}
-                      accept="image/*"
-                    />
-                  </label>
-                </div>
-              )}
+          <div className="flex flex-col max-w-sm space-y-4">
+            <div className="flex items-center justify-between gap-2 px-2">
+              <span className="uppercase font-mono text-muted-foreground text-xs">
+                Vos informations
+              </span>
+              <span className="text-muted-foreground hover:text-black cursor-pointer transition-all duration-300 ease-linear text-xs font-mono uppercase">
+                Choisir
+              </span>
             </div>
-
-            <EditableField
-              value={localData.infos_societe.nom}
-              onChange={(value) => updateSociete("nom", value)}
-              className="font-bold text-lg"
-              placeholder="Nom de votre société"
-            />
-
-            <EditableField
-              value={localData.infos_societe.activite}
-              onChange={(value) => updateSociete("activite", value)}
-              className="text-sm text-gray-500 mb-4"
-              placeholder="Votre activité"
-            />
-
-            <EditableField
-              value={localData.infos_societe.adresse}
-              onChange={(value) => updateSociete("adresse", value)}
-              className="text-sm"
-              placeholder="Adresse"
-            />
-
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2">
               <EditableField
-                value={localData.infos_societe.code_postal}
-                onChange={(value) => updateSociete("code_postal", value)}
-                className="text-sm w-1/3"
-                placeholder="Code postal"
+                value={localData.infos_societe.nom}
+                onChange={(value) => updateSociete("nom", value)}
+                className="font-bold text-lg"
+                placeholder="Votre société"
               />
+
               <EditableField
-                value={localData.infos_societe.ville}
-                onChange={(value) => updateSociete("ville", value)}
-                className="text-sm flex-1"
-                placeholder="Ville"
+                value={localData.infos_societe.activite}
+                onChange={(value) => updateSociete("activite", value)}
+                className="text-sm text-gray-500 mb-4"
+                placeholder="Votre activité"
               />
             </div>
 
-            <EditableField
-              value={localData.infos_societe.telephone}
-              onChange={(value) => updateSociete("telephone", value)}
-              className="text-sm"
-              placeholder="Téléphone"
-            />
+            <div className="flex flex-col gap-2">
+              <EditableField
+                value={localData.infos_societe.adresse}
+                onChange={(value) => updateSociete("adresse", value)}
+                className="text-sm"
+                placeholder="Adresse"
+              />
 
-            <EditableField
-              value={localData.infos_societe.email}
-              onChange={(value) => updateSociete("email", value)}
-              className="text-sm"
-              placeholder="Email"
-            />
+              <div className="flex gap-2">
+                <EditableField
+                  value={localData.infos_societe.code_postal}
+                  onChange={(value) => updateSociete("code_postal", value)}
+                  className="text-sm w-1/3"
+                  placeholder="Code postal"
+                />
+                <EditableField
+                  value={localData.infos_societe.ville}
+                  onChange={(value) => updateSociete("ville", value)}
+                  className="text-sm flex-1"
+                  placeholder="Ville"
+                />
+              </div>
 
-            <EditableField
-              value={localData.infos_societe.site}
-              onChange={(value) => updateSociete("site", value)}
-              className="text-sm"
-              placeholder="Site web (optionnel)"
-            />
+              <EditableField
+                value={localData.infos_societe.telephone}
+                onChange={(value) => updateSociete("telephone", value)}
+                className="text-sm"
+                placeholder="Téléphone"
+              />
+
+              <EditableField
+                value={localData.infos_societe.email}
+                onChange={(value) => updateSociete("email", value)}
+                className="text-sm"
+                placeholder="Email"
+              />
+
+              <EditableField
+                value={localData.infos_societe.site}
+                onChange={(value) => updateSociete("site", value)}
+                className="text-sm"
+                placeholder="Site web (optionnel)"
+              />
+            </div>
           </div>
 
           {/* Informations devis */}
@@ -974,21 +916,14 @@ interface EditableFieldProps {
   className?: string;
 }
 
-function EditableField({
-  value,
-  onChange,
-  placeholder,
-  className = "",
-}: EditableFieldProps) {
+function EditableField({ value, onChange, placeholder }: EditableFieldProps) {
   return (
-    <div
-      className={`border border-transparent hover:border-gray-200 rounded px-1 py-0.5 focus-within:border-blue-400 focus-within:bg-blue-50 ${className}`}
-    >
-      <input
+    <div>
+      <Input
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full focus:outline-none bg-transparent"
+        className="w-full focus-visible:ring-0 border-none shadow-none bg-[#F4F5F6] text-black placeholder:text-[#818E9C]"
         placeholder={placeholder}
       />
     </div>

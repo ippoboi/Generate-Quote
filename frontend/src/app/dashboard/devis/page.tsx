@@ -2,11 +2,11 @@
 
 import { EditableDevis } from "@/components/editable-devis";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { DevisData } from "@/types/devis";
 import axios from "axios";
-import { useState, useEffect } from "react";
+import { Download, Save } from "lucide-react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 export default function DevisPage() {
@@ -141,15 +141,33 @@ export default function DevisPage() {
   };
 
   return (
-    <div className="container mx-auto p-12 space-y-8">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold">Créer un nouveau devis</h1>
-        <p className="text-sm text-muted-foreground">
-          Remplissez le formulaire ci-dessous pour créer un nouveau devis
-        </p>
+    <div className="container my-12 mx-auto max-w-screen-lg p-2 space-y-2 bg-[#F4F5F6] border border-[#EAEBEB] rounded-2xl">
+      <div className="flex justify-between items-center gap-2 px-5 py-7 ">
+        <div className="flex flex-col">
+          <Input
+            type="text"
+            placeholder="Donnez moi un titre"
+            className="text-lg md:text-2xl pl-0 font-medium placeholder:text-2xl placeholder:font-medium focus-visible:ring-0 border-none shadow-none"
+          />
+          <Input
+            type="text"
+            placeholder="Ainsi qu'une description pour retrouver de quoi je parle"
+            className="text-muted-foreground pl-0 placeholder:text-muted-foreground placeholder:font-medium focus-visible:ring-0 border-none shadow-none"
+          />
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline">
+            <Save className="w-4 h-4" />
+            Sauvegarder
+          </Button>
+          <Button>
+            <Download className="w-4 h-4" />
+            Export
+          </Button>
+        </div>
       </div>
 
-      <div className="flex flex-col gap-2">
+      {/* <div className="flex flex-col gap-2">
         <h2 className="text-lg font-bold">Options</h2>
         <div className="flex items-center space-x-2">
           <Checkbox
@@ -162,19 +180,9 @@ export default function DevisPage() {
             (pas de TVA applicable)
           </Label>
         </div>
-      </div>
+      </div> */}
 
       <EditableDevis data={devisData} onUpdate={updateDevisData} />
-
-      <div className="flex justify-center mt-8 gap-4">
-        <Button
-          onClick={handleGenerateDevis}
-          disabled={loading}
-          className="px-8"
-        >
-          {loading ? "Génération..." : "Générer le PDF"}
-        </Button>
-      </div>
     </div>
   );
 }
