@@ -1,15 +1,15 @@
 "use client";
 
 import {
-  File,
-  LayoutDashboardIcon,
-  ListIcon,
+  Database,
+  DollarSign,
+  FileIcon,
+  MessageCircleIcon,
   SettingsIcon,
 } from "lucide-react";
 import * as React from "react";
 
 import { NavMain } from "@/components/navigation/nav-main";
-import { NavSecondary } from "@/components/navigation/nav-secondary";
 import { NavUser } from "@/components/navigation/nav-user";
 import {
   Sidebar,
@@ -17,10 +17,12 @@ import {
   SidebarFooter,
   SidebarHeader,
   SidebarMenu,
-  SidebarMenuButton,
   SidebarMenuItem,
+  SidebarTrigger,
 } from "@/components/ui/sidebar";
+import Image from "next/image";
 import { NavHistory } from "./nav-documents";
+import { NavSearch } from "./nav-search";
 
 const data = {
   navSecondary: [
@@ -32,14 +34,24 @@ const data = {
   ],
   navMain: [
     {
-      title: "Dashboard",
-      url: "/dashboard",
-      icon: LayoutDashboardIcon,
-    },
-    {
       title: "Devis",
       url: "/dashboard/devis",
-      icon: ListIcon,
+      icon: FileIcon,
+    },
+    {
+      title: "Factures",
+      url: "/dashboard/invoices",
+      icon: DollarSign,
+    },
+    {
+      title: "Propositions",
+      url: "/dashboard/proposal",
+      icon: MessageCircleIcon,
+    },
+    {
+      title: "Base de données",
+      url: "/dashboard/database",
+      icon: Database,
     },
   ],
   history: [
@@ -60,26 +72,31 @@ const data = {
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
-    <Sidebar collapsible="offcanvas" {...props}>
-      <SidebarHeader>
+    <Sidebar collapsible="icon" {...props}>
+      <SidebarHeader className="py-4 border-b max-h-16">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              className="data-[slot=sidebar-menu-button]:!p-1.5"
-            >
-              <a href="#">
-                <File className="h-5 w-5" />
-                <span className="text-base font-semibold">Admin Tools</span>
+            <div className="flex items-center justify-between px-3 group-data-[collapsible=icon]:px-2">
+              <a href="/dashboard" className="flex items-center gap-2">
+                <Image
+                  src="/logo/dashboard-logo.png"
+                  alt="logo"
+                  width={32}
+                  height={32}
+                />
+                <span className="text-base font-medium font-mono group-data-[collapsible=icon]:hidden">
+                  Adminify.io
+                </span>
               </a>
-            </SidebarMenuButton>
+              <SidebarTrigger className="group-data-[collapsible=icon]:hidden text-muted-foreground" />
+            </div>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
+        <NavSearch />
         <NavMain items={data.navMain} />
         <NavHistory items={data.history} />
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
         <NavUser />
