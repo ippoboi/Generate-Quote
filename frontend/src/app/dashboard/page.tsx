@@ -6,5 +6,5 @@ export default async function DashboardPage() {
 
   if (!session) return redirect("/auth/signin");
 
-  return <div>{session.user?.email}</div>;
+  return redirect("/dashboard/devis");
 }

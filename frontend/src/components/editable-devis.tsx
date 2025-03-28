@@ -1,13 +1,7 @@
 "use client";
 
 import { DevisData, PaginationSettings, Produit } from "@/types/devis";
-import {
-  ChevronLeft,
-  ChevronRight,
-  PlusCircle,
-  Settings,
-  Trash2,
-} from "lucide-react";
+import { Plus, Settings, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "./ui/button";
@@ -40,6 +34,7 @@ const TVA_RATES = [
   { value: "10", label: "10% - Taux intermédiaire" },
   { value: "5.5", label: "5.5% - Taux réduit" },
   { value: "2.1", label: "2.1% - Taux particulier" },
+  { value: "0", label: "0% - Auto-entrepreneur" },
 ];
 
 // Key for localStorage
@@ -450,7 +445,7 @@ export function EditableDevis({ data, onUpdate }: EditableDevisProps) {
         <div className="flex justify-between gap-8">
           {/* Informations société */}
           <div className="flex flex-col max-w-sm space-y-4">
-            <div className="flex items-center justify-between gap-2 px-2">
+            <div className="flex items-center justify-between gap-2 px-3">
               <span className="uppercase font-mono text-muted-foreground text-xs">
                 Vos informations
               </span>
@@ -520,21 +515,21 @@ export function EditableDevis({ data, onUpdate }: EditableDevisProps) {
             </div>
           </div>
 
-          {/* Informations devis */}
-          <div className="bg-white h-fit w-fit p-4 rounded border shadow-sm flex flex-col items-center">
-            <h2 className="text-2xl font-bold text-center mb-4">DEVIS</h2>
-            <div className="w-full">
-              <div className="flex items-center mb-2">
-                <span className="w-14 text-sm font-medium">n°:</span>
+          <div className="flex flex-col justify-between">
+            {/* Informations devis */}
+            <div className="w-full flex flex-col max-w-sm space-y-4">
+              <span className="uppercase px-3 font-mono text-muted-foreground text-xs">
+                Devis
+              </span>
+
+              <div className="w-full space-y-2">
                 <EditableField
                   value={localData.infos_societe.numero_devis}
                   onChange={(value) => updateSociete("numero_devis", value)}
                   className="text-sm"
                   placeholder="D00000"
                 />
-              </div>
-              <div className="flex items-center">
-                <span className="w-14 text-sm font-medium">Date:</span>
+
                 <EditableField
                   value={localData.infos_societe.date}
                   onChange={(value) => updateSociete("date", value)}
@@ -543,57 +538,67 @@ export function EditableDevis({ data, onUpdate }: EditableDevisProps) {
                 />
               </div>
             </div>
+
+            {/* Informations client */}
+            <div className="w-full flex flex-col max-w-sm space-y-4">
+              <div className="flex items-center justify-between gap-2 px-3">
+                <span className="uppercase font-mono text-muted-foreground text-xs">
+                  Informations client
+                </span>
+                <span className="text-muted-foreground hover:text-black cursor-pointer transition-all duration-300 ease-linear text-xs font-mono uppercase">
+                  Choisir
+                </span>
+              </div>
+              <div className="flex flex-col gap-2 max-w-sm">
+                <EditableField
+                  value={localData.infos_client.nom}
+                  onChange={(value) => updateClient("nom", value)}
+                  className="font-bold"
+                  placeholder="Société et/ou Nom du client"
+                />
+
+                <EditableField
+                  value={localData.infos_client.adresse}
+                  onChange={(value) => updateClient("adresse", value)}
+                  placeholder="Adresse du client"
+                  className="w-full"
+                />
+
+                <div className="flex gap-2 w-full max-w-sm justify-end">
+                  <EditableField
+                    value={localData.infos_client.code_postal}
+                    onChange={(value) => updateClient("code_postal", value)}
+                    placeholder="Code postal"
+                  />
+                  <EditableField
+                    value={localData.infos_client.ville}
+                    onChange={(value) => updateClient("ville", value)}
+                    placeholder="Ville"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Corps du devis */}
       <div className="p-6">
-        {/* Informations client */}
-        <div className="mb-8 w-full flex flex-col items-end text-right">
-          <div className="flex flex-col gap-2 max-w-sm">
-            <EditableField
-              value={localData.infos_client.nom}
-              onChange={(value) => updateClient("nom", value)}
-              className="font-bold"
-              placeholder="Société et/ou Nom du client"
-            />
-
-            <EditableField
-              value={localData.infos_client.adresse}
-              onChange={(value) => updateClient("adresse", value)}
-              placeholder="Adresse du client"
-              className="w-full"
-            />
-
-            <div className="flex gap-2 w-full max-w-sm justify-end">
-              <EditableField
-                value={localData.infos_client.code_postal}
-                onChange={(value) => updateClient("code_postal", value)}
-                className="max-w-1/3"
-                placeholder="Code postal"
-              />
-              <EditableField
-                value={localData.infos_client.ville}
-                onChange={(value) => updateClient("ville", value)}
-                placeholder="Ville"
-                className="w-full"
-              />
-            </div>
-          </div>
-        </div>
-
         {/* Description du projet */}
-        <div className="mb-6">
-          <EditableField
-            value={localData.infos_client.description_projet}
-            onChange={(value) => updateClient("description_projet", value)}
-            className="font-bold mb-4"
-            placeholder="intitulé : description du projet et/ou Produits"
-          />
+        <div className="space-y-4">
+          <div className="max-w-lg space-y-4">
+            <div className="uppercase px-3 font-mono text-muted-foreground text-xs">
+              Détails
+            </div>
+            <EditableField
+              value={localData.infos_client.description_projet}
+              onChange={(value) => updateClient("description_projet", value)}
+              placeholder="intitulé : description du projet et/ou Produits"
+            />
+          </div>
 
           {/* Tableau des produits */}
-          <div ref={productSectionRef}>
+          <div ref={productSectionRef} className="space-y-8">
             {heightWarning && (
               <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4">
                 <p className="font-bold">
@@ -606,303 +611,363 @@ export function EditableDevis({ data, onUpdate }: EditableDevisProps) {
               </div>
             )}
 
-            <Table className="border">
-              <TableHeader>
-                <TableRow className="bg-gray-50">
-                  <TableHead className="w-20 text-center">Qté</TableHead>
-                  <TableHead className="w-[65%]">Désignation</TableHead>
-                  <TableHead className="w-28 text-right">Prix Unit.</TableHead>
-                  <TableHead className="w-28 text-right">Total HT</TableHead>
-                  <TableHead className="w-12"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {displayedProducts.map((produit, index) => (
-                  <TableRow
-                    key={produit.id}
-                    className="align-top h-20 border-b"
-                  >
-                    <TableCell className="text-center align-middle p-2">
-                      <Input
-                        type="number"
-                        value={produit.quantite}
-                        onChange={(e) =>
-                          updateProduit(
-                            startIdx + index,
-                            "quantite",
-                            e.target.value
-                          )
-                        }
-                        className="h-10 w-full text-center"
-                        placeholder="0"
-                        min="0"
-                      />
-                    </TableCell>
-                    <TableCell className="p-2 align-middle">
-                      <Textarea
-                        value={produit.designation}
-                        onChange={(e) =>
-                          updateProduit(
-                            startIdx + index,
-                            "designation",
-                            e.target.value
-                          )
-                        }
-                        className="min-h-10 w-full text-sm resize-none p-2"
-                        placeholder="Désignation du produit ou service"
-                        rows={2}
-                      />
-                    </TableCell>
-                    <TableCell className="text-right align-middle p-2">
-                      <Input
-                        type="number"
-                        value={produit.prix_unitaire}
-                        onChange={(e) =>
-                          updateProduit(
-                            startIdx + index,
-                            "prix_unitaire",
-                            e.target.value
-                          )
-                        }
-                        className="h-10 w-full text-right"
-                        placeholder="0.00"
-                        step="0.01"
-                        min="0"
-                      />
-                    </TableCell>
-                    <TableCell className="text-right font-medium align-middle p-2">
-                      {(produit.quantite * produit.prix_unitaire).toFixed(2)} €
-                    </TableCell>
-                    <TableCell className="align-middle p-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => removeProduit(startIdx + index)}
-                        disabled={localData.produits.length <= 1}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
+            <div className="overflow-hidden rounded-lg border">
+              <Table className="w-full">
+                <TableHeader>
+                  <TableRow className="bg-gray-50 font-mono ">
+                    <TableHead className="w-20 text-center text-muted-foreground">
+                      QTÉ
+                    </TableHead>
+                    <TableHead className="w-[65%] text-muted-foreground">
+                      DESIGNATION
+                    </TableHead>
+                    <TableHead className="w-28 text-center text-muted-foreground">
+                      PRIX UNIT.
+                    </TableHead>
+                    <TableHead className="w-28 text-center text-muted-foreground">
+                      TOTAL HT
+                    </TableHead>
+                    <TableHead className="w-12"></TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-
-            {/* Pagination controls */}
-            {localData.produits.length > itemsPerPage && (
-              <div className="flex justify-center items-center mt-4 gap-2">
+                </TableHeader>
+                <TableBody>
+                  {displayedProducts.map((produit, index) => {
+                    const isLastRow = index === displayedProducts.length - 1;
+                    return (
+                      <TableRow key={produit.id} className=" items-start">
+                        <TableCell
+                          className={`text-center align-middle p-2 ${
+                            isLastRow ? "rounded-bl-lg" : ""
+                          }`}
+                        >
+                          <Input
+                            type="number"
+                            value={produit.quantite}
+                            onChange={(e) =>
+                              updateProduit(
+                                startIdx + index,
+                                "quantite",
+                                e.target.value
+                              )
+                            }
+                            className="min-h-8 w-full text-center bg-gray-50 border-0"
+                            placeholder="0"
+                            min="0"
+                          />
+                        </TableCell>
+                        <TableCell className="p-2 align-middle max-w-sm">
+                          <Textarea
+                            value={produit.designation}
+                            onChange={(e) =>
+                              updateProduit(
+                                startIdx + index,
+                                "designation",
+                                e.target.value
+                              )
+                            }
+                            className="min-h-8 w-full text-sm resize-none p-2 bg-gray-50 border-0"
+                            placeholder="Exemple d'une désignation d'un produit qui sera pour X"
+                            rows={2}
+                          />
+                        </TableCell>
+                        <TableCell className="text-right align-middle p-2">
+                          <div className="flex items-center justify-end">
+                            <Input
+                              type="number"
+                              value={produit.prix_unitaire}
+                              onChange={(e) =>
+                                updateProduit(
+                                  startIdx + index,
+                                  "prix_unitaire",
+                                  e.target.value
+                                )
+                              }
+                              className="min-h-8 w-full text-center bg-gray-50 border-0"
+                              placeholder="0.00"
+                              step="0.01"
+                              min="0"
+                            />
+                            <span className="ml-1">€</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center font-medium align-middle p-2">
+                          {(produit.quantite * produit.prix_unitaire).toFixed(
+                            2
+                          )}{" "}
+                          €
+                        </TableCell>
+                        <TableCell
+                          className={`align-middle p-2 ${
+                            isLastRow ? "rounded-br-lg" : ""
+                          }`}
+                        >
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => removeProduit(startIdx + index)}
+                            disabled={localData.produits.length <= 1}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+              <div className="w-full p-2">
                 <Button
                   variant="outline"
-                  size="sm"
-                  onClick={goToPreviousPage}
-                  disabled={currentPage === 1}
+                  className="w-full shadow-none border-dashed"
+                  onClick={addProduit}
                 >
-                  <ChevronLeft className="h-4 w-4 mr-1" />
-                  Précédent
-                </Button>
-                <span className="text-sm">
-                  Page {currentPage} sur{" "}
-                  {localData.paginationSettings?.totalPages || 1}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={goToNextPage}
-                  disabled={
-                    currentPage === localData.paginationSettings?.totalPages
-                  }
-                >
-                  Suivant
-                  <ChevronRight className="h-4 w-4 ml-1" />
+                  <Plus className="h-4 w-4" />
+                  <span>Nouvelle ligne</span>
                 </Button>
               </div>
-            )}
+            </div>
 
-            <div className="flex justify-between mt-4">
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-1 h-10"
-                onClick={addProduit}
-              >
-                <PlusCircle className="h-4 w-4" />
-                <span>Ajouter une ligne</span>
-              </Button>
-
-              <div className="w-80">
-                <div className="flex justify-between border-t pt-2 px-2">
-                  <span className="font-medium">Total HT:</span>
-                  <span className="font-medium">{totalHT.toFixed(2)} €</span>
+            <div className="flex justify-end">
+              <div className="min-w-96 space-y-4">
+                <div className="uppercase px-2 font-mono text-muted-foreground text-xs">
+                  RÉCAPITULATIF (EN EUROS)
                 </div>
-                {!localData.isAutoEntrepreneur && (
-                  <div className="flex items-center justify-between border-t pt-2 px-2">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">TVA</span>
-                      <Select
-                        value={localData.conditions.tva_taux.toString()}
-                        onValueChange={(value) =>
-                          updateConditions("tva_taux", parseFloat(value))
-                        }
-                      >
-                        <SelectTrigger className="w-[130px] h-7">
-                          <SelectValue placeholder="Sélectionner un taux" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {TVA_RATES.map((rate) => (
-                            <SelectItem key={rate.value} value={rate.value}>
-                              {rate.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <span className="font-medium">:</span>
+                <div className="rounded-lg border p-5 space-y-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground font-mono">
+                      TOTAL HT
+                    </span>
+                    <span className="">
+                      {totalHT.toFixed(2).replace(".", ",")}
+                    </span>
+                  </div>
+
+                  {!localData.isAutoEntrepreneur && (
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <span className="text-sm text-muted-foreground font-mono">
+                          TVA
+                        </span>
+                        <Select
+                          value={localData.conditions.tva_taux.toString()}
+                          onValueChange={(value) =>
+                            updateConditions("tva_taux", parseFloat(value))
+                          }
+                        >
+                          <SelectTrigger className="w-[180px] h-9 text-base">
+                            <SelectValue placeholder="Sélectionner un taux" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {TVA_RATES.map((rate) => (
+                              <SelectItem key={rate.value} value={rate.value}>
+                                {rate.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <span className="">
+                        {totalTVA.toFixed(2).replace(".", ",")}
+                      </span>
                     </div>
-                    <span className="font-medium">{totalTVA.toFixed(2)} €</span>
+                  )}
+
+                  <div className="flex justify-between items-center pt-4 border-t border-dashed">
+                    <span className="text-sm text-muted-foreground font-mono">
+                      TOTAL {!localData.isAutoEntrepreneur ? "TTC" : ""}
+                    </span>
+                    <span className="">
+                      {(!localData.isAutoEntrepreneur
+                        ? totalTTC.toFixed(2)
+                        : totalHT.toFixed(2)
+                      ).replace(".", ",")}
+                    </span>
                   </div>
-                )}
-                <div className="flex justify-between border-t border-b py-2 font-bold px-2">
-                  <span>
-                    Total{!localData.isAutoEntrepreneur ? " TTC" : ""}:
-                  </span>
-                  <span>
-                    {!localData.isAutoEntrepreneur
-                      ? totalTTC.toFixed(2)
-                      : totalHT.toFixed(2)}{" "}
-                    €
-                  </span>
+
+                  {localData.isAutoEntrepreneur && (
+                    <div className="text-xs text-muted-foreground font-mono mt-1 text-right italic">
+                      TVA non applicable, article 293 B du CGI
+                    </div>
+                  )}
                 </div>
-                {localData.isAutoEntrepreneur && (
-                  <div className="text-xs text-gray-500 mt-1 text-right italic">
-                    TVA non applicable, article 293 B du CGI
-                  </div>
-                )}
               </div>
             </div>
           </div>
 
           <div className="mt-8 text-sm">
-            <div className="flex items-center mb-2">
-              <span className="font-medium">Validité du devis :</span>
-              <EditableField
-                value={localData.conditions.validite}
-                onChange={(value) => updateConditions("validite", value)}
-                className="w-sm"
-              />
-            </div>
-            <div className="flex items-center mb-2">
-              <span className="font-medium">Conditions de règlement :</span>
-              <EditableField
-                value={localData.conditions.reglement}
-                onChange={(value) => updateConditions("reglement", value)}
-                className="w-sm"
-              />
-            </div>
-            <p className="mt-4">
-              Nous restons à votre disposition pour toute information
-              complémentaire.
-            </p>
-            <p>Cordialement,</p>
+            {/* Informations supplémentaires */}
+            <div className="w-full flex flex-col max-w-sm space-y-4">
+              <span className="uppercase px-3 font-mono text-muted-foreground text-xs">
+                Informations supplémentaires
+              </span>
 
-            <div className="mt-6">
-              <p>
-                Si ce devis vous convient, veuillez nous le retourner signé
-                précédé de la mention :
-              </p>
-              <p className="font-bold my-2">
-                &quot;BON POUR ACCORD ET EXECUTION DES TRAVAUX&quot;
-              </p>
+              <div className="w-full space-y-2">
+                <EditableField
+                  value={localData.conditions.validite}
+                  onChange={(value) => updateConditions("validite", value)}
+                  className="w-sm"
+                  placeholder="Validité du devis"
+                />
+
+                <EditableField
+                  value={localData.conditions.reglement}
+                  onChange={(value) => updateConditions("reglement", value)}
+                  className="w-sm"
+                  placeholder="Conditions de réglement"
+                />
+              </div>
+            </div>
+            <div className="px-3">
+              <div className="mt-6 text-muted-foreground flex flex-col gap-3">
+                <p>
+                  Nous restons à votre disposition pour toute information
+                  complémentaire.
+                </p>
+
+                <p>Cordialement,</p>
+              </div>
+
+              <div className="mt-6 text-muted-foreground flex flex-col gap-3">
+                <p>
+                  Si ce devis vous convient, veuillez nous le retourner signé
+                  précédé de la mention :
+                </p>
+                <p className="font-bold">
+                  &quot;BON POUR ACCORD ET EXECUTION DES TRAVAUX&quot;
+                </p>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Pied de page */}
-      <div className="p-4 bg-gray-50 border-t text-xs text-gray-500">
-        <div className="grid grid-cols-2 gap-4 text-left mb-4">
-          <div>
-            <div className="flex items-center mb-1">
-              <span className="font-medium w-28">Forme juridique:</span>
-              <EditableField
-                value={localData.infos_societe.forme_juridique}
-                onChange={(value) => updateSociete("forme_juridique", value)}
-                placeholder="SARL, SAS, etc."
-                className="flex-1"
-              />
-            </div>
-            <div className="flex items-center mb-1">
-              <span className="font-medium w-28">Capital:</span>
-              <EditableField
-                value={localData.infos_societe.capital}
-                onChange={(value) => updateSociete("capital", value)}
-                placeholder="ex: 7000 Euros"
-                className="flex-1"
-              />
-            </div>
-            <div className="flex items-center mb-1">
-              <span className="font-medium w-28">N° SIRET:</span>
-              <EditableField
-                value={localData.infos_societe.siret}
-                onChange={(value) => updateSociete("siret", value)}
-                placeholder="ex: 210.896.764 00015"
-                className="flex-1"
-              />
-            </div>
-            <div className="flex items-center mb-1">
-              <span className="font-medium w-28">RCS:</span>
-              <EditableField
-                value={localData.infos_societe.rcs}
-                onChange={(value) => updateSociete("rcs", value)}
-                placeholder="ex: Nantes"
-                className="flex-1"
-              />
-            </div>
-          </div>
-          <div>
-            <div className="flex items-center mb-1">
-              <span className="font-medium w-28">Code APE:</span>
-              <EditableField
-                value={localData.infos_societe.code_ape}
-                onChange={(value) => updateSociete("code_ape", value)}
-                placeholder="ex: 947A"
-                className="flex-1"
-              />
-            </div>
-            <div className="flex items-center mb-1">
-              <span className="font-medium w-28">N° TVA Intracom:</span>
-              <EditableField
-                value={localData.infos_societe.tva_intracom}
-                onChange={(value) => updateSociete("tva_intracom", value)}
-                placeholder="ex: FR 77825896764000"
-                className="flex-1"
-              />
-            </div>
-            <div className="flex items-center mb-1">
-              <span className="font-medium w-28">Banque:</span>
-              <EditableField
-                value={localData.infos_societe.info_bancaire}
-                onChange={(value) => updateSociete("info_bancaire", value)}
-                placeholder="ex: Banque Postale"
-                className="flex-1"
-              />
-            </div>
-            <div className="flex items-center mb-1">
-              <span className="font-medium w-28">RIB:</span>
-              <EditableField
-                value={localData.infos_societe.rib}
-                onChange={(value) => updateSociete("rib", value)}
-                placeholder="ex: 20042 00001 5740054W020 44"
-                className="flex-1"
-              />
-            </div>
-          </div>
+      <div className="p-6 bg-[#FAFAFA] border-t text-xs space-y-4">
+        <div className="uppercase px-3 font-mono text-muted-foreground text-xs">
+          INFORMATIONs DU PIED DE PAGE
         </div>
+        <div className="grid grid-cols-2 gap-4 text-left">
+          <div className="flex flex-col gap-2">
+            <EditableField
+              value={localData.infos_societe.forme_juridique}
+              onChange={(value) => updateSociete("forme_juridique", value)}
+              placeholder="SARL, SAS, etc."
+              variant="outline"
+            />
+            <EditableField
+              value={localData.infos_societe.capital}
+              onChange={(value) => updateSociete("capital", value)}
+              placeholder="ex: 7000 Euros"
+              variant="outline"
+            />
 
-        <div className="text-center text-gray-500 mt-2">
-          <span>
-            Page {currentPage} / {localData.paginationSettings?.totalPages || 1}
-          </span>
+            <EditableField
+              value={localData.infos_societe.siret}
+              onChange={(value) => updateSociete("siret", value)}
+              placeholder="ex: 210.896.764 00015"
+              variant="outline"
+            />
+
+            <EditableField
+              value={localData.infos_societe.rcs}
+              onChange={(value) => updateSociete("rcs", value)}
+              placeholder="ex: Nantes"
+              variant="outline"
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <EditableField
+              value={localData.infos_societe.code_ape}
+              onChange={(value) => updateSociete("code_ape", value)}
+              placeholder="ex: 947A"
+              variant="outline"
+            />
+
+            <EditableField
+              value={localData.infos_societe.tva_intracom}
+              onChange={(value) => updateSociete("tva_intracom", value)}
+              placeholder="ex: FR 77825896764000"
+              variant="outline"
+            />
+
+            <EditableField
+              value={localData.infos_societe.info_bancaire}
+              onChange={(value) => updateSociete("info_bancaire", value)}
+              placeholder="ex: Banque Postale"
+              variant="outline"
+            />
+
+            <EditableField
+              value={localData.infos_societe.rib}
+              onChange={(value) => updateSociete("rib", value)}
+              placeholder="ex: 20042 00001 5740054W020 44"
+              variant="outline"
+            />
+          </div>
         </div>
+      </div>
+      {/* Top pagination controls */}
+      <div className="p-4  border-t flex justify-between items-center">
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant={"ghost"}
+            onClick={() =>
+              setLocalData({
+                ...localData,
+                paginationSettings: {
+                  ...(localData.paginationSettings as PaginationSettings),
+                  currentPage: 1,
+                },
+              })
+            }
+            className={
+              currentPage === 1 ? "bg-[#F4F5F6] text-black" : "text-gray-500"
+            }
+          >
+            1
+          </Button>
+
+          {Array.from(
+            { length: (localData.paginationSettings?.totalPages || 1) - 1 },
+            (_, i) => i + 2
+          ).map((pageNum) => (
+            <Button
+              key={pageNum}
+              size="sm"
+              variant={"ghost"}
+              onClick={() =>
+                setLocalData({
+                  ...localData,
+                  paginationSettings: {
+                    ...(localData.paginationSettings as PaginationSettings),
+                    currentPage: pageNum,
+                  },
+                })
+              }
+              className={
+                currentPage === pageNum
+                  ? "bg-[#F4F5F6] text-black"
+                  : "text-gray-500"
+              }
+            >
+              {pageNum}
+            </Button>
+          ))}
+
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={addPage}
+            className="text-gray-500"
+          >
+            +
+          </Button>
+        </div>
+        <Button variant="ghost" size="sm">
+          <Settings className="w-4 h-4 text-muted-foreground" />
+        </Button>
       </div>
     </div>
   );
@@ -913,17 +978,24 @@ interface EditableFieldProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
-  className?: string;
+  variant?: "default" | "outline";
 }
 
-function EditableField({ value, onChange, placeholder }: EditableFieldProps) {
+function EditableField({
+  value,
+  onChange,
+  placeholder,
+  variant = "default",
+}: EditableFieldProps) {
   return (
     <div>
       <Input
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full focus-visible:ring-0 border-none shadow-none bg-[#F4F5F6] text-black placeholder:text-[#818E9C]"
+        className={`w-full focus-visible:ring-0 border-none shadow-none text-black placeholder:text-[#818E9C] ${
+          variant === "outline" ? "border border-[#EAEBEB]" : "bg-[#F4F5F6]"
+        }`}
         placeholder={placeholder}
       />
     </div>
