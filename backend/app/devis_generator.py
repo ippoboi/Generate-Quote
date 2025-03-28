@@ -38,7 +38,7 @@ class GenerateurDevis:
         
         # Gestion de la pagination
         pagination_settings = conditions.get('paginationSettings', {})
-        items_per_page = pagination_settings.get('itemsPerPage', 10)
+        items_per_page = pagination_settings.get('itemsPerPage', 4)
         total_pages = pagination_settings.get('totalPages', math.ceil(len(produits) / items_per_page)) if items_per_page > 0 else 1
         
         # Créer un document avec marges réduites

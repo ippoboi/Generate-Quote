@@ -2,8 +2,7 @@
 
 import { DevisData, PaginationSettings, Produit } from "@/types/devis";
 import { Plus, Settings, Trash2 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
+import { useCallback, useEffect, useState } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import {
@@ -22,6 +21,14 @@ import {
   TableRow,
 } from "./ui/table";
 import { Textarea } from "./ui/textarea";
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from "./ui/drawer";
 
 interface EditableDevisProps {
   data: DevisData;
@@ -37,81 +44,24 @@ const TVA_RATES = [
   { value: "0", label: "0% - Auto-entrepreneur" },
 ];
 
-// Key for localStorage
-const DEVIS_STORAGE_KEY = "saved_devis_data";
-
 export function EditableDevis({ data, onUpdate }: EditableDevisProps) {
-  // Initialize with prop data only, and move localStorage operations to useEffect
+  // Initialize with prop data
   const [localData, setLocalData] = useState<DevisData>({
     ...data,
     paginationSettings: data.paginationSettings || {
-      itemsPerPage: 10,
+      itemsPerPage: 4,
       currentPage: 1,
-      totalPages: Math.ceil(data.produits.length / 10) || 1,
+      totalPages: Math.ceil(data.produits.length / 4) || 1,
     },
   });
 
-  // State to track if there are unsaved changes
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-
-  // Ref for product section to measure height
-  const productSectionRef = useRef<HTMLDivElement>(null);
-  // State for height warning
-  const [heightWarning, setHeightWarning] = useState(false);
-
-  // A4 height in pixels (roughly 1123px at 96dpi)
-  const A4_HEIGHT_PX = 1123;
-  const MAX_CONTENT_HEIGHT = A4_HEIGHT_PX - 500; // Adjust based on header/footer size
-
-  // Load data from localStorage after component mounts
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const savedData = localStorage.getItem(DEVIS_STORAGE_KEY);
-      if (savedData) {
-        try {
-          const parsed = JSON.parse(savedData);
-          // Ensure we have pagination settings
-          setLocalData({
-            ...parsed,
-            paginationSettings: parsed.paginationSettings || {
-              itemsPerPage: 10,
-              currentPage: 1,
-              totalPages: Math.ceil(parsed.produits.length / 10) || 1,
-            },
-          });
-        } catch (e) {
-          console.error("Error parsing saved devis data", e);
-        }
-      }
-    }
-  }, []);
+  // State for drawer
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   // Update localData when data prop changes (including isAutoEntrepreneur)
   useEffect(() => {
-    // Only update if there's no saved data
-    if (
-      typeof window !== "undefined" &&
-      !localStorage.getItem(DEVIS_STORAGE_KEY)
-    ) {
-      setLocalData(data);
-    }
+    setLocalData(data);
   }, [data]);
-
-  // Save to localStorage whenever localData changes
-  useEffect(() => {
-    if (typeof window !== "undefined" && localData) {
-      localStorage.setItem(DEVIS_STORAGE_KEY, JSON.stringify(localData));
-      setHasUnsavedChanges(true);
-
-      // Auto-save debounce to prevent excessive writes
-      const saveTimeout = setTimeout(() => {
-        onUpdate(localData);
-        setHasUnsavedChanges(false);
-      }, 2000);
-
-      return () => clearTimeout(saveTimeout);
-    }
-  }, [localData, onUpdate]);
 
   // Update isAutoEntrepreneur when it changes from props
   useEffect(() => {
@@ -122,30 +72,6 @@ export function EditableDevis({ data, onUpdate }: EditableDevisProps) {
       }));
     }
   }, [data.isAutoEntrepreneur, localData.isAutoEntrepreneur]);
-
-  // Clear localStorage when user manually saves or when component unmounts
-  const clearSavedData = useCallback(() => {
-    if (typeof window !== "undefined") {
-      localStorage.removeItem(DEVIS_STORAGE_KEY);
-      toast.success("Devis sauvegardé");
-      setHasUnsavedChanges(false);
-      onUpdate(localData);
-    }
-  }, [localData, onUpdate]);
-
-  // Add beforeunload warning if there are unsaved changes
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (hasUnsavedChanges) {
-        e.preventDefault();
-        e.returnValue = "";
-        return "";
-      }
-    };
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [hasUnsavedChanges]);
 
   // Create a dependency key for product changes
   const productsDepsKey = localData.produits
@@ -275,38 +201,8 @@ export function EditableDevis({ data, onUpdate }: EditableDevisProps) {
   const totalTVA = totalHT * (localData.conditions.tva_taux / 100);
   const totalTTC = totalHT + totalTVA;
 
-  // Pagination functions
-  const goToNextPage = () => {
-    if (
-      localData.paginationSettings?.currentPage !==
-      localData.paginationSettings?.totalPages
-    ) {
-      const updatedSettings = {
-        ...(localData.paginationSettings as PaginationSettings),
-        currentPage: (localData.paginationSettings?.currentPage || 1) + 1,
-      };
-      setLocalData({
-        ...localData,
-        paginationSettings: updatedSettings,
-      });
-    }
-  };
-
-  const goToPreviousPage = () => {
-    if ((localData.paginationSettings?.currentPage || 1) > 1) {
-      const updatedSettings = {
-        ...(localData.paginationSettings as PaginationSettings),
-        currentPage: (localData.paginationSettings?.currentPage || 2) - 1,
-      };
-      setLocalData({
-        ...localData,
-        paginationSettings: updatedSettings,
-      });
-    }
-  };
-
   // Calculate pagination
-  const itemsPerPage = localData.paginationSettings?.itemsPerPage || 10;
+  const itemsPerPage = localData.paginationSettings?.itemsPerPage || 4;
   const currentPage = localData.paginationSettings?.currentPage || 1;
   const startIdx = (currentPage - 1) * itemsPerPage;
   const endIdx = Math.min(startIdx + itemsPerPage, localData.produits.length);
@@ -344,36 +240,6 @@ export function EditableDevis({ data, onUpdate }: EditableDevisProps) {
       };
     });
   }, []);
-
-  // Check page height and set warning
-  useEffect(() => {
-    const checkHeight = () => {
-      if (productSectionRef.current) {
-        const height = productSectionRef.current.clientHeight;
-        const exceeds = height > MAX_CONTENT_HEIGHT;
-
-        // Only show toast when warning is triggered (not when it's cleared)
-        if (exceeds && !heightWarning) {
-          toast.warning("Limite de la page atteinte", {
-            description:
-              "Veuillez ajouter une nouvelle page ou réduire le nombre d'éléments.",
-            action: {
-              label: "Ajouter",
-              onClick: addPage,
-            },
-            duration: 7000, // Show for 7 seconds
-          });
-        }
-
-        setHeightWarning(exceeds);
-      }
-    };
-
-    checkHeight();
-    // Add resize listener
-    window.addEventListener("resize", checkHeight);
-    return () => window.removeEventListener("resize", checkHeight);
-  }, [displayedProducts, heightWarning, MAX_CONTENT_HEIGHT, addPage]);
 
   return (
     <div className="border rounded-lg overflow-hidden bg-white">
@@ -435,10 +301,24 @@ export function EditableDevis({ data, onUpdate }: EditableDevisProps) {
             +
           </Button>
         </div>
-        <Button variant="ghost" size="sm">
+        <Button variant="ghost" size="sm" onClick={() => setIsDrawerOpen(true)}>
           <Settings className="w-4 h-4 text-muted-foreground" />
         </Button>
       </div>
+
+      {/* Drawer component */}
+      <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
+        <DrawerContent>
+          <DrawerHeader>
+            <DrawerTitle>Drawer</DrawerTitle>
+          </DrawerHeader>
+          <DrawerFooter>
+            <DrawerClose>
+              <Button variant="outline">Close</Button>
+            </DrawerClose>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
 
       {/* En-tête du devis */}
       <div className="p-6 ">
@@ -457,14 +337,12 @@ export function EditableDevis({ data, onUpdate }: EditableDevisProps) {
               <EditableField
                 value={localData.infos_societe.nom}
                 onChange={(value) => updateSociete("nom", value)}
-                className="font-bold text-lg"
                 placeholder="Votre société"
               />
 
               <EditableField
                 value={localData.infos_societe.activite}
                 onChange={(value) => updateSociete("activite", value)}
-                className="text-sm text-gray-500 mb-4"
                 placeholder="Votre activité"
               />
             </div>
@@ -473,7 +351,6 @@ export function EditableDevis({ data, onUpdate }: EditableDevisProps) {
               <EditableField
                 value={localData.infos_societe.adresse}
                 onChange={(value) => updateSociete("adresse", value)}
-                className="text-sm"
                 placeholder="Adresse"
               />
 
@@ -481,13 +358,11 @@ export function EditableDevis({ data, onUpdate }: EditableDevisProps) {
                 <EditableField
                   value={localData.infos_societe.code_postal}
                   onChange={(value) => updateSociete("code_postal", value)}
-                  className="text-sm w-1/3"
                   placeholder="Code postal"
                 />
                 <EditableField
                   value={localData.infos_societe.ville}
                   onChange={(value) => updateSociete("ville", value)}
-                  className="text-sm flex-1"
                   placeholder="Ville"
                 />
               </div>
@@ -495,21 +370,18 @@ export function EditableDevis({ data, onUpdate }: EditableDevisProps) {
               <EditableField
                 value={localData.infos_societe.telephone}
                 onChange={(value) => updateSociete("telephone", value)}
-                className="text-sm"
                 placeholder="Téléphone"
               />
 
               <EditableField
                 value={localData.infos_societe.email}
                 onChange={(value) => updateSociete("email", value)}
-                className="text-sm"
                 placeholder="Email"
               />
 
               <EditableField
                 value={localData.infos_societe.site}
                 onChange={(value) => updateSociete("site", value)}
-                className="text-sm"
                 placeholder="Site web (optionnel)"
               />
             </div>
@@ -526,14 +398,12 @@ export function EditableDevis({ data, onUpdate }: EditableDevisProps) {
                 <EditableField
                   value={localData.infos_societe.numero_devis}
                   onChange={(value) => updateSociete("numero_devis", value)}
-                  className="text-sm"
                   placeholder="D00000"
                 />
 
                 <EditableField
                   value={localData.infos_societe.date}
                   onChange={(value) => updateSociete("date", value)}
-                  className="text-sm"
                   placeholder="JJ/MM/AAAA"
                 />
               </div>
@@ -553,7 +423,6 @@ export function EditableDevis({ data, onUpdate }: EditableDevisProps) {
                 <EditableField
                   value={localData.infos_client.nom}
                   onChange={(value) => updateClient("nom", value)}
-                  className="font-bold"
                   placeholder="Société et/ou Nom du client"
                 />
 
@@ -561,7 +430,6 @@ export function EditableDevis({ data, onUpdate }: EditableDevisProps) {
                   value={localData.infos_client.adresse}
                   onChange={(value) => updateClient("adresse", value)}
                   placeholder="Adresse du client"
-                  className="w-full"
                 />
 
                 <div className="flex gap-2 w-full max-w-sm justify-end">
@@ -598,19 +466,7 @@ export function EditableDevis({ data, onUpdate }: EditableDevisProps) {
           </div>
 
           {/* Tableau des produits */}
-          <div ref={productSectionRef} className="space-y-8">
-            {heightWarning && (
-              <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4">
-                <p className="font-bold">
-                  Attention : Contenu trop grand pour une page A4
-                </p>
-                <p>
-                  Veuillez ajouter une nouvelle page ou réduire le nombre
-                  d&apos;éléments sur cette page.
-                </p>
-              </div>
-            )}
-
+          <div className="space-y-8">
             <div className="overflow-hidden rounded-lg border">
               <Table className="w-full">
                 <TableHeader>
@@ -806,14 +662,12 @@ export function EditableDevis({ data, onUpdate }: EditableDevisProps) {
                 <EditableField
                   value={localData.conditions.validite}
                   onChange={(value) => updateConditions("validite", value)}
-                  className="w-sm"
                   placeholder="Validité du devis"
                 />
 
                 <EditableField
                   value={localData.conditions.reglement}
                   onChange={(value) => updateConditions("reglement", value)}
-                  className="w-sm"
                   placeholder="Conditions de réglement"
                 />
               </div>
@@ -907,7 +761,7 @@ export function EditableDevis({ data, onUpdate }: EditableDevisProps) {
           </div>
         </div>
       </div>
-      {/* Top pagination controls */}
+      {/* Bottom pagination controls */}
       <div className="p-4  border-t flex justify-between items-center">
         <div className="flex items-center gap-2">
           <Button
