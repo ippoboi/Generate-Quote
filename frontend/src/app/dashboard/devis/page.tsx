@@ -3,6 +3,7 @@
 import { EditableDevis } from "@/components/editable-devis";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { DevisData } from "@/types/devis";
 import axios from "axios";
 import { Download, Save } from "lucide-react";
@@ -10,8 +11,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 export default function DevisPage() {
-  const [loading, setLoading] = useState(false);
-  const [isAutoEntrepreneur, setIsAutoEntrepreneur] = useState(false);
+  const [, setLoading] = useState(false);
   const [devisData, setDevisData] = useState<DevisData>({
     id: "new-devis",
     title: "Nouveau Devis",
@@ -51,7 +51,6 @@ export default function DevisPage() {
         id: "1",
         quantite: 1,
         designation: "",
-        tva: 20,
         prix_unitaire: 0,
         total_ht: 0,
       },
@@ -61,7 +60,7 @@ export default function DevisPage() {
       reglement: "",
       tva_taux: 20,
     },
-    isAutoEntrepreneur: isAutoEntrepreneur,
+    isAutoEntrepreneur: false,
   });
 
   // Initialize client-side data after component mounts to avoid hydration mismatches
@@ -80,21 +79,6 @@ export default function DevisPage() {
     }));
   }, []);
 
-  const updateDevisData = (newData: DevisData) => {
-    setDevisData({
-      ...newData,
-      isAutoEntrepreneur: isAutoEntrepreneur,
-    });
-  };
-
-  const handleAutoEntrepreneurChange = (checked: boolean) => {
-    setIsAutoEntrepreneur(checked);
-    setDevisData({
-      ...devisData,
-      isAutoEntrepreneur: checked,
-    });
-  };
-
   const handleGenerateDevis = async () => {
     try {
       setLoading(true);
@@ -109,7 +93,7 @@ export default function DevisPage() {
       const dataToSend = {
         ...devisData,
         produits: produitsWithTotals,
-        isAutoEntrepreneur: isAutoEntrepreneur,
+        isAutoEntrepreneur: devisData.isAutoEntrepreneur,
       };
 
       // Appel API pour générer le PDF
@@ -143,16 +127,17 @@ export default function DevisPage() {
   return (
     <div className="container my-12 mx-auto max-w-screen-lg p-2 space-y-2 bg-[#F4F5F6] border border-[#EAEBEB] rounded-2xl">
       <div className="flex justify-between items-center gap-2 px-5 py-7 ">
-        <div className="flex flex-col">
+        <div className="flex flex-col flex-1 max-w-lg">
           <Input
             type="text"
             placeholder="Donnez moi un titre"
             className="text-lg md:text-2xl pl-0 font-medium placeholder:text-2xl placeholder:font-medium focus-visible:ring-0 border-none shadow-none"
           />
-          <Input
-            type="text"
+          <Textarea
             placeholder="Ainsi qu'une description pour retrouver de quoi je parle"
-            className="text-muted-foreground pl-0 placeholder:text-muted-foreground placeholder:font-medium focus-visible:ring-0 border-none shadow-none"
+            className="text-muted-foreground text-wrap pl-0 placeholder:text-muted-foreground placeholder:font-medium focus-visible:ring-0 border-none shadow-none"
+            rows={1}
+            maxLength={150}
           />
         </div>
         <div className="flex gap-2">
@@ -160,29 +145,14 @@ export default function DevisPage() {
             <Save className="w-4 h-4" />
             Sauvegarder
           </Button>
-          <Button>
+          <Button onClick={handleGenerateDevis}>
             <Download className="w-4 h-4" />
             Export
           </Button>
         </div>
       </div>
 
-      {/* <div className="flex flex-col gap-2">
-        <h2 className="text-lg font-bold">Options</h2>
-        <div className="flex items-center space-x-2">
-          <Checkbox
-            id="auto-entrepreneur"
-            checked={isAutoEntrepreneur}
-            onCheckedChange={handleAutoEntrepreneurChange}
-          />
-          <Label htmlFor="auto-entrepreneur" className="font-medium text-sm">
-            Je suis Auto-entrepreneur avec chiffre d&apos;affaires &lt; 25 000€
-            (pas de TVA applicable)
-          </Label>
-        </div>
-      </div> */}
-
-      <EditableDevis data={devisData} onUpdate={updateDevisData} />
+      <EditableDevis data={devisData} onUpdate={setDevisData} />
     </div>
   );
 }

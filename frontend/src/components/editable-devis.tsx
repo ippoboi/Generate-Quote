@@ -1,7 +1,7 @@
 "use client";
 
 import { DevisData, PaginationSettings, Produit } from "@/types/devis";
-import { Plus, Settings, Trash2 } from "lucide-react";
+import { Download, Plus, Save, Settings, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -29,6 +29,8 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "./ui/drawer";
+import { Checkbox } from "./ui/checkbox";
+import { Label } from "./ui/label";
 
 interface EditableDevisProps {
   data: DevisData;
@@ -46,6 +48,7 @@ const TVA_RATES = [
 
 export function EditableDevis({ data, onUpdate }: EditableDevisProps) {
   // Initialize with prop data
+  const [isAutoEntrepreneur, setIsAutoEntrepreneur] = useState(false);
   const [localData, setLocalData] = useState<DevisData>({
     ...data,
     paginationSettings: data.paginationSettings || {
@@ -158,7 +161,6 @@ export function EditableDevis({ data, onUpdate }: EditableDevisProps) {
       id: Date.now().toString(),
       quantite: 0,
       designation: "",
-      tva: 1,
       prix_unitaire: 0,
       total_ht: 0,
     };
@@ -191,6 +193,17 @@ export function EditableDevis({ data, onUpdate }: EditableDevisProps) {
         [field]: field === "tva_taux" ? Number(value) : value,
       },
     });
+  };
+
+  // Gestion du changement de l'option Auto-entrepreneur
+  const handleAutoEntrepreneurChange = (checked: boolean) => {
+    setIsAutoEntrepreneur(checked);
+    const updatedData = {
+      ...localData,
+      isAutoEntrepreneur: checked,
+    };
+    setLocalData(updatedData);
+    onUpdate(updatedData);
   };
 
   // Calculer les totaux
@@ -310,10 +323,27 @@ export function EditableDevis({ data, onUpdate }: EditableDevisProps) {
       <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
         <DrawerContent>
           <DrawerHeader>
-            <DrawerTitle>Drawer</DrawerTitle>
+            <DrawerTitle>Options</DrawerTitle>
           </DrawerHeader>
+          <div className="flex flex-col gap-2">
+            <h2 className="text-lg font-bold">Options</h2>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="auto-entrepreneur"
+                checked={isAutoEntrepreneur}
+                onCheckedChange={handleAutoEntrepreneurChange}
+              />
+              <Label
+                htmlFor="auto-entrepreneur"
+                className="font-medium text-sm"
+              >
+                Je suis Auto-entrepreneur avec chiffre d&apos;affaires &lt; 25
+                000€ (pas de TVA applicable)
+              </Label>
+            </div>
+          </div>
           <DrawerFooter>
-            <DrawerClose>
+            <DrawerClose asChild>
               <Button variant="outline">Close</Button>
             </DrawerClose>
           </DrawerFooter>
@@ -819,9 +849,16 @@ export function EditableDevis({ data, onUpdate }: EditableDevisProps) {
             +
           </Button>
         </div>
-        <Button variant="ghost" size="sm">
-          <Settings className="w-4 h-4 text-muted-foreground" />
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline">
+            <Save className="w-4 h-4" />
+            Sauvegarder
+          </Button>
+          <Button>
+            <Download className="w-4 h-4" />
+            Export
+          </Button>
+        </div>
       </div>
     </div>
   );

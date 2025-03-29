@@ -32,7 +32,6 @@ export interface Produit {
   id: string;
   quantite: number;
   designation: string;
-  tva: number;
   prix_unitaire: number;
   total_ht: number;
 }
